@@ -1,0 +1,365 @@
+{% extends "delivery_base.html" %}
+
+{% block title %}Delivery Routes | Manqinenyathi Food Supply{% endblock %}
+
+{% block page_title %}Delivery Routes & Live Location{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Map Container -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-map-marked-alt me-2"></i>Live Delivery Map
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div id="deliveryMap" style="height: 500px; width: 100%;"></div>
+            </div>
+        </div>
+
+        <!-- Delivery Instructions -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Map Instructions</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-truck text-primary me-2"></i>
+                            <span class="small">Blue truck = Your current location</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-map-marker-alt text-warning me-2"></i>
+                            <span class="small">Yellow marker = Pending delivery</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span class="small">Green marker = Completed delivery</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-road text-info me-2"></i>
+                            <span class="small">Blue line = Suggested route</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Location Controls -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="fas fa-location-arrow me-2"></i>Location Controls</h6>
+            </div>
+            <div class="card-body">
+                <button id="locateMe" class="btn btn-primary w-100 mb-2">
+                    <i class="fas fa-crosshairs me-2"></i>Find My Location
+                </button>
+                <button id="showAllDeliveries" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-expand me-2"></i>Show All Deliveries
+                </button>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Allow location access to see your current position on the map
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Deliveries -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-clock text-warning me-2"></i>Pending Deliveries
+                    <span class="badge bg-warning float-end">{{ pending_deliveries|length }}</span>
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if pending_deliveries %}
+                    {% for delivery in pending_deliveries %}
+                    <div class="delivery-item mb-3 p-2 border rounded">
+                        <h6 class="mb-1">{{ delivery.school.school_name }}</h6>
+                        <p class="mb-1 small text-muted">
+                            <i class="fas fa-map-marker-alt me-1"></i>{{ delivery.location }}
+                        </p>
+                        <p class="mb-1 small">
+                            <i class="fas fa-user me-1"></i>{{ delivery.school.contact_person }}
+                        </p>
+                        <p class="mb-0 small">
+                            <i class="fas fa-phone me-1"></i>{{ delivery.school.contact_number }}
+                        </p>
+                        <button class="btn btn-sm btn-outline-primary mt-2 w-100 view-on-map" 
+                                data-address="{{ delivery.location }}"
+                                data-school="{{ delivery.school.school_name }}">
+                            <i class="fas fa-map me-1"></i>View on Map
+                        </button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center mb-0">No pending deliveries</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Completed Deliveries -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-check-circle text-success me-2"></i>Completed Today
+                    <span class="badge bg-success float-end">{{ completed_deliveries|length }}</span>
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if completed_deliveries %}
+                    {% for delivery in completed_deliveries %}
+                    <div class="delivery-item mb-2 p-2 border rounded">
+                        <h6 class="mb-1">{{ delivery.school.school_name }}</h6>
+                        <p class="mb-1 small text-muted">
+                            <i class="fas fa-map-marker-alt me-1"></i>{{ delivery.location }}
+                        </p>
+                        <p class="mb-0 small text-success">
+                            <i class="fas fa-clock me-1"></i>
+                            Delivered at: {{ delivery.delivered_time.strftime('%H:%M') if delivery.delivered_time else 'N/A' }}
+                        </p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center mb-0">No completed deliveries today</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include Leaflet.js for mapping -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<!-- Leaflet plugins for routing and geolocation -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+<script>
+// Map initialization
+let deliveryMap;
+let userMarker;
+let routingControl;
+let deliveryMarkers = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the map
+    initMap();
+    
+    // Set up event listeners
+    document.getElementById('locateMe').addEventListener('click', locateUser);
+    document.getElementById('showAllDeliveries').addEventListener('click', showAllDeliveries);
+    
+    // Add view on map functionality
+    document.querySelectorAll('.view-on-map').forEach(button => {
+        button.addEventListener('click', function() {
+            const address = this.getAttribute('data-address');
+            const school = this.getAttribute('data-school');
+            geocodeAddress(address, school);
+        });
+    });
+});
+
+function initMap() {
+    // Default center (you might want to set this to your operational area)
+    deliveryMap = L.map('deliveryMap').setView([-26.2041, 28.0473], 12);
+    
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 18
+    }).addTo(deliveryMap);
+    
+    // Add scale control
+    L.control.scale().addTo(deliveryMap);
+}
+
+function locateUser() {
+    if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser');
+        return;
+    }
+    
+    const locateButton = document.getElementById('locateMe');
+    locateButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Locating...';
+    locateButton.disabled = true;
+    
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            
+            // Remove existing user marker
+            if (userMarker) {
+                deliveryMap.removeLayer(userMarker);
+            }
+            
+            // Add new user marker
+            userMarker = L.marker([userLat, userLng], {
+                icon: L.divIcon({
+                    html: '<i class="fas fa-truck" style="color: #007bff; font-size: 20px;"></i>',
+                    iconSize: [20, 20],
+                    className: 'user-location-marker'
+                })
+            }).addTo(deliveryMap)
+              .bindPopup('Your current location')
+              .openPopup();
+            
+            // Center map on user location
+            deliveryMap.setView([userLat, userLng], 14);
+            
+            // Update button
+            locateButton.innerHTML = '<i class="fas fa-crosshairs me-2"></i>Update My Location';
+            locateButton.disabled = false;
+            
+            // If we have delivery locations, we could calculate routes here
+            calculateRoutesFromCurrentLocation(userLat, userLng);
+        },
+        function(error) {
+            console.error('Error getting location:', error);
+            alert('Unable to retrieve your location. Please ensure location services are enabled.');
+            
+            // Reset button
+            locateButton.innerHTML = '<i class="fas fa-crosshairs me-2"></i>Find My Location';
+            locateButton.disabled = false;
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+        }
+    );
+}
+
+function geocodeAddress(address, schoolName) {
+    // This is a simplified geocoding example
+    // In production, you would use a proper geocoding service
+    alert(`Would geocode address: ${address} for ${schoolName}\n\nIn a real implementation, this would use Google Maps Geocoding API or similar service.`);
+    
+    // Example of what you might do with a geocoding service:
+    // fetch(`/api/geocode?address=${encodeURIComponent(address)}`)
+    //     .then(response => response.json())
+    //     .then(data => {
+    //         if (data.lat && data.lng) {
+    //             deliveryMap.setView([data.lat, data.lng], 15);
+    //             L.marker([data.lat, data.lng])
+    //                 .addTo(deliveryMap)
+    //                 .bindPopup(`<strong>${schoolName}</strong><br>${address}`)
+    //                 .openPopup();
+    //         }
+    //     });
+}
+
+function calculateRoutesFromCurrentLocation(userLat, userLng) {
+    // This would calculate routes to all pending deliveries
+    // For now, we'll just show a message
+    console.log('Calculating routes from:', userLat, userLng);
+    
+    // In a real implementation, you would:
+    // 1. Geocode all delivery addresses to get their coordinates
+    // 2. Use Leaflet Routing Machine to calculate and display routes
+    // 3. Optimize the route order
+}
+
+function showAllDeliveries() {
+    // This would adjust the map view to show all delivery locations
+    if (deliveryMarkers.length > 0) {
+        const group = new L.featureGroup(deliveryMarkers);
+        deliveryMap.fitBounds(group.getBounds().pad(0.1));
+    } else {
+        alert('No delivery locations available to show.');
+    }
+}
+
+// Function to add delivery markers (you would call this with real coordinates)
+function addDeliveryMarker(lat, lng, schoolName, address, status) {
+    const iconColor = status === 'completed' ? 'green' : 'orange';
+    const icon = L.divIcon({
+        html: `<i class="fas fa-${status === 'completed' ? 'check-circle' : 'map-marker-alt'}" 
+                   style="color: ${iconColor}; font-size: 20px;"></i>`,
+        iconSize: [20, 20],
+        className: 'delivery-marker'
+    });
+    
+    const marker = L.marker([lat, lng], { icon: icon })
+        .addTo(deliveryMap)
+        .bindPopup(`<strong>${schoolName}</strong><br>${address}<br><em>Status: ${status}</em>`);
+    
+    deliveryMarkers.push(marker);
+    return marker;
+}
+
+// Watch user position for real-time updates (optional)
+function startWatchingPosition() {
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+            function(position) {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
+                
+                if (userMarker) {
+                    userMarker.setLatLng([userLat, userLng]);
+                }
+            },
+            function(error) {
+                console.error('Error watching position:', error);
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 30000,
+                timeout: 27000
+            }
+        );
+    }
+}
+
+// Start watching position when page loads (optional - can be resource intensive)
+// startWatchingPosition();
+</script>
+
+<style>
+#deliveryMap {
+    border-radius: 8px;
+}
+
+.user-location-marker {
+    background: transparent;
+    border: none;
+}
+
+.delivery-marker {
+    background: transparent;
+    border: none;
+}
+
+.leaflet-routing-container {
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.delivery-item {
+    transition: all 0.3s ease;
+}
+
+.delivery-item:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+}
+</style>
+{% endblock %}

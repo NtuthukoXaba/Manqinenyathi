@@ -80,6 +80,19 @@ class Learner(db.Model):
     meal_type = db.Column(db.String(20), default='Lunch') 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+# Add this function to your app.py
+def optimize_delivery_route(deliveries, start_location):
+    """
+    Basic route optimization - sorts by distance from start location
+    In production, use a proper routing algorithm or service
+    """
+    # This is a simplified version - implement proper routing logic
+    return sorted(deliveries, key=lambda x: calculate_distance(start_location, x.location))
+
+def calculate_distance(location1, location2):
+    # Simplified distance calculation - implement proper haversine formula
+    return 0  # Placeholder
+
 # Updated Routes with Email Authentication
 @app.route('/', methods=['GET', 'POST'])
 def home():
@@ -858,8 +871,57 @@ def delivery_history():
 def delivery_routes():
     if session.get('role') != 'delivery':
         return redirect(url_for('home'))
-    # Implementation for delivery routes
-    return render_template('delivery_routes.html')
+    
+    user_id = session.get('user_id')
+    today = datetime.now().date()
+    
+    # Get today's pending deliveries for this delivery person
+    pending_deliveries = Delivery.query.filter_by(
+        delivery_guy_id=user_id,
+        delivery_date=today,
+        status='Pending'
+    ).join(School).order_by(Delivery.delivery_date).all()
+    
+    # Get completed deliveries for today
+    completed_deliveries = Delivery.query.filter_by(
+        delivery_guy_id=user_id,
+        delivery_date=today,
+        status='Delivered'
+    ).join(School).order_by(Delivery.delivered_time).all()
+    
+    # Prepare delivery data for the map
+    delivery_locations = []
+    
+    for delivery in pending_deliveries:
+        delivery_locations.append({
+            'school_name': delivery.school.school_name,
+            'address': delivery.location,
+            'contact_person': delivery.school.contact_person,
+            'contact_number': delivery.school.contact_number,
+            'status': 'pending',
+            'delivery_id': delivery.delivery_id,
+            'latitude': None,  # You'll need to geocode these addresses
+            'longitude': None  # You'll need to geocode these addresses
+        })
+    
+    for delivery in completed_deliveries:
+        delivery_locations.append({
+            'school_name': delivery.school.school_name,
+            'address': delivery.location,
+            'contact_person': delivery.school.contact_person,
+            'contact_number': delivery.school.contact_number,
+            'status': 'completed',
+            'delivery_id': delivery.delivery_id,
+            'delivered_time': delivery.delivered_time.strftime('%H:%M') if delivery.delivered_time else None,
+            'latitude': None,
+            'longitude': None
+        })
+    
+    return render_template('delivery_routes.html',
+                         pending_deliveries=pending_deliveries,
+                         completed_deliveries=completed_deliveries,
+                         delivery_locations=delivery_locations,
+                         today=today)
 
 @app.route('/delivery/performance')
 def delivery_performance():
