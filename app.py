@@ -180,11 +180,6 @@ def dashboard_cooker():
                          today_attendance=today_attendance,
                          today=today)
 
-@app.route('/dashboard/delivery')
-def dashboard_delivery():
-    if session.get('role') != 'delivery':
-        return redirect(url_for('home'))
-    return render_template('dashboard_delivery.html')
 
 # School Management Routes
 @app.route('/admin/schools')
@@ -761,6 +756,155 @@ def admin_attendance():
                          not_clocked_in_today=not_clocked_in_today,
                          pending_cookers=pending_cookers,
                          today=today)
+
+@app.route('/dashboard/delivery')
+def dashboard_delivery():
+    if session.get('role') != 'delivery':
+        return redirect(url_for('home'))
+    
+    user_id = session.get('user_id')
+    today = datetime.now().date()
+    
+    # Get today's deliveries for this delivery person
+    todays_deliveries = Delivery.query.filter_by(
+        delivery_guy_id=user_id,
+        delivery_date=today
+    ).join(School).order_by(Delivery.delivery_date).all()
+    
+    # Calculate stats
+    total_deliveries = len(todays_deliveries)
+    completed_deliveries = len([d for d in todays_deliveries if d.status == 'Delivered'])
+    pending_deliveries = [d for d in todays_deliveries if d.status == 'Pending']
+    
+    # Find current delivery (first pending delivery)
+    current_delivery = next((d for d in todays_deliveries if d.status == 'Pending'), None)
+    
+    # Find next delivery (after current)
+    if current_delivery:
+        current_index = todays_deliveries.index(current_delivery)
+        next_delivery = todays_deliveries[current_index + 1] if current_index + 1 < len(todays_deliveries) else None
+    else:
+        next_delivery = None
+    
+    # Mock data for demonstration
+    distance_covered = 42  # This would come from GPS tracking in real app
+    on_time_rate = 94      # This would be calculated from historical data
+    avg_delivery_time = 28 # This would be calculated from historical data
+    
+    return render_template('dashboard_delivery.html',
+                         todays_deliveries=todays_deliveries,
+                         total_deliveries=total_deliveries,
+                         completed_deliveries=completed_deliveries,
+                         pending_deliveries=pending_deliveries,
+                         current_delivery=current_delivery,
+                         next_delivery=next_delivery,
+                         distance_covered=distance_covered,
+                         on_time_rate=on_time_rate,
+                         avg_delivery_time=avg_delivery_time)
+
+# Add these additional delivery routes
+@app.route('/delivery/my-deliveries')
+def delivery_my_deliveries():
+    if session.get('role') != 'delivery':
+        return redirect(url_for('home'))
+    
+    user_id = session.get('user_id')
+    page = request.args.get('page', 1, type=int)
+    status_filter = request.args.get('status', '')
+    date_filter = request.args.get('date', '')
+    
+    # Base query for deliveries assigned to this delivery person
+    query = Delivery.query.filter_by(delivery_guy_id=user_id).join(School)
+    
+    # Apply filters
+    if status_filter:
+        query = query.filter(Delivery.status == status_filter)
+    
+    if date_filter:
+        try:
+            filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            query = query.filter(Delivery.delivery_date == filter_date)
+        except ValueError:
+            flash('Invalid date format', 'error')
+    
+    # Order by delivery date (pending first, then by date)
+    from sqlalchemy import case
+    query = query.order_by(
+        case((Delivery.status == 'Pending', 1), else_=2),
+        Delivery.delivery_date.desc()
+    )
+    
+    # Pagination
+    deliveries_pagination = query.paginate(
+        page=page, 
+        per_page=10, 
+        error_out=False
+    )
+    
+    return render_template('delivery_my_deliveries.html',
+                         deliveries=deliveries_pagination.items,
+                         pagination=deliveries_pagination,
+                         status_filter=status_filter,
+                         date_filter=date_filter)
+
+@app.route('/delivery/history')
+def delivery_history():
+    if session.get('role') != 'delivery':
+        return redirect(url_for('home'))
+    # Implementation for delivery history
+    return render_template('delivery_history.html')
+
+@app.route('/delivery/routes')
+def delivery_routes():
+    if session.get('role') != 'delivery':
+        return redirect(url_for('home'))
+    # Implementation for delivery routes
+    return render_template('delivery_routes.html')
+
+@app.route('/delivery/performance')
+def delivery_performance():
+    if session.get('role') != 'delivery':
+        return redirect(url_for('home'))
+    # Implementation for performance tracking
+    return render_template('delivery_performance.html')
+
+# API endpoint for completing deliveries
+@app.route('/api/delivery/complete', methods=['POST'])
+def api_complete_delivery():
+    if session.get('role') != 'delivery':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    data = request.get_json()
+    delivery_id = data.get('delivery_id')
+    delivery_time = data.get('delivery_time')
+    notes = data.get('notes', '')
+    has_issues = data.get('has_issues', False)
+    
+    delivery = Delivery.query.get(delivery_id)
+    if delivery and delivery.delivery_guy_id == session.get('user_id'):
+        try:
+            # Parse delivery time and combine with delivery date
+            if delivery_time:
+                time_obj = datetime.strptime(delivery_time, '%H:%M').time()
+                delivered_datetime = datetime.combine(delivery.delivery_date, time_obj)
+            else:
+                delivered_datetime = datetime.utcnow()
+            
+            delivery.status = 'Delivered'
+            delivery.delivered_time = delivered_datetime
+            delivery.remarks = notes if notes else delivery.remarks
+            
+            if has_issues:
+                # You might want to log issues separately
+                delivery.remarks = f"ISSUES REPORTED: {notes}" if notes else "ISSUES REPORTED: No details provided"
+            
+            db.session.commit()
+            return jsonify({'success': True})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': str(e)})
+    
+    return jsonify({'success': False, 'message': 'Delivery not found'})
 
 @app.route('/debug/users')
 def debug_users():

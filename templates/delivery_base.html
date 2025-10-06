@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Delivery Dashboard | Manqinenyathi Food Supply{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary-purple: #6a0dad;
+            --light-purple: #8a2be2;
+            --dark-purple: #4b0082;
+            --accent-purple: #9370db;
+            --white: #ffffff;
+            --light-gray: #f8f9fa;
+            --medium-gray: #e9ecef;
+            --dark-gray: #6c757d;
+            --text-dark: #343a40;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--text-dark);
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+            color: var(--white);
+            height: 100vh;
+            position: fixed;
+            padding-top: 20px;
+            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            width: 250px;
+        }
+        
+        .sidebar .logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar .logo h3 {
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
+            margin: 5px 0;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: var(--white);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Main Content Styles */
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background-color: var(--white);
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            color: var(--primary-purple);
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-info img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid var(--primary-purple);
+        }
+        
+        /* Dashboard Cards */
+        .dashboard-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+            border-top: 4px solid var(--primary-purple);
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .dashboard-card .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: rgba(106, 13, 173, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .dashboard-card .card-icon i {
+            font-size: 24px;
+            color: var(--primary-purple);
+        }
+        
+        .dashboard-card h3 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: var(--primary-purple);
+        }
+        
+        .dashboard-card p {
+            color: var(--dark-gray);
+            margin: 0;
+        }
+        
+        /* Delivery Cards */
+        .delivery-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-purple);
+        }
+        
+        .delivery-card.pending {
+            border-left-color: #ffc107;
+        }
+        
+        .delivery-card.completed {
+            border-left-color: #28a745;
+        }
+        
+        .delivery-card.in-progress {
+            border-left-color: #007bff;
+        }
+        
+        .delivery-card h5 {
+            color: var(--text-dark);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .delivery-card .delivery-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .delivery-card .delivery-info .info-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .delivery-card .delivery-info .info-item i {
+            margin-right: 8px;
+            color: var(--primary-purple);
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #856404;
+        }
+        
+        .status-delivered {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #155724;
+        }
+        
+        .status-in-progress {
+            background-color: rgba(0, 123, 255, 0.1);
+            color: #004085;
+        }
+        
+        /* Buttons */
+        .btn-primary {
+            background-color: var(--primary-purple);
+            border-color: var(--primary-purple);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--dark-purple);
+            border-color: var(--dark-purple);
+        }
+        
+        .btn-outline-primary {
+            border-color: var(--primary-purple);
+            color: var(--primary-purple);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-purple);
+            color: white;
+        }
+        
+        /* Map Container */
+        .map-container {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .map-container h3 {
+            color: var(--primary-purple);
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        #deliveryMap {
+            height: 300px;
+            border-radius: 8px;
+        }
+        
+        /* Table Styles */
+        .table-container {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .table-container h3 {
+            color: var(--primary-purple);
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .table th {
+            background-color: rgba(106, 13, 173, 0.1);
+            color: var(--primary-purple);
+            border-top: none;
+        }
+        
+        /* Stats Cards */
+        .stats-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-purple);
+        }
+        
+        .stats-card h5 {
+            color: var(--dark-gray);
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .stats-card h3 {
+            color: var(--primary-purple);
+            font-weight: 700;
+            margin-bottom: 0;
+        }
+        
+        /* Alert Styles */
+        .alert-info {
+            background-color: rgba(106, 13, 173, 0.1);
+            border-color: rgba(106, 13, 173, 0.2);
+            color: var(--primary-purple);
+        }
+        
+        /* Real-time notification */
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .nav-item {
+            position: relative;
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-2 sidebar d-none d-md-block">
+                <div class="logo">
+                    <h3><i class="fas fa-utensils me-2"></i>Manqinenyathi</h3>
+                    <p class="text-muted small">Food Supply System</p>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard_delivery' %}active{% endif %}" href="{{ url_for('dashboard_delivery') }}">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'delivery_my_deliveries' %}active{% endif %}" href="{{ url_for('delivery_my_deliveries') }}">
+                            <i class="fas fa-truck"></i> My Deliveries
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'delivery_history' %}active{% endif %}" href="{{ url_for('delivery_history') }}">
+                            <i class="fas fa-history"></i> Delivery History
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'delivery_routes' %}active{% endif %}" href="{{ url_for('delivery_routes') }}">
+                            <i class="fas fa-map-marked-alt"></i> Delivery Routes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'delivery_performance' %}active{% endif %}" href="{{ url_for('delivery_performance') }}">
+                            <i class="fas fa-chart-line"></i> My Performance
+                        </a>
+                    </li>
+                    <li class="nav-item mt-4">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <!-- Main Content -->
+            <main class="col-md-10 main-content">
+                <!-- Header -->
+                <div class="header">
+                    <h1><i class="fas fa-tachometer-alt me-2"></i>{% block page_title %}Delivery Dashboard{% endblock %}</h1>
+                    <div class="user-info">
+                        <img src="https://ui-avatars.com/api/?name={{ session.get('username', 'Delivery Person') }}&background=6a0dad&color=fff" alt="{{ session.get('username', 'Delivery Person') }}">
+                        <div>
+                            <h6 class="mb-0">{{ session.get('username', 'Delivery Personnel') }}</h6>
+                            <small class="text-muted">Delivery Personnel</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else 'info' }} alert-dismissible fade show" role="alert">
+                                <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'info-circle' }} me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Main Content Block -->
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Delivery Modal -->
+    <div class="modal fade" id="deliveryModal" tabindex="-1" aria-labelledby="deliveryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deliveryModalLabel">Mark Delivery as Completed</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="deliveryForm">
+                        <div class="mb-3">
+                            <label for="deliveryTime" class="form-label">Actual Delivery Time</label>
+                            <input type="time" class="form-control" id="deliveryTime" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="deliveryNotes" class="form-label">Delivery Notes (Optional)</label>
+                            <textarea class="form-control" id="deliveryNotes" rows="3" placeholder="Any notes about this delivery..."></textarea>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="issuesCheck">
+                            <label class="form-check-label" for="issuesCheck">
+                                There were issues with this delivery
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmDelivery">Confirm Delivery</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        // Initialize map
+        function initMap(centerLat = -26.2041, centerLng = 28.0473, zoom = 12) {
+            const map = L.map('deliveryMap').setView([centerLat, centerLng], zoom);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}/{{"{"}}#777{{"}"}}/', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            return map;
+        }
+
+        // Real-time updates with Socket.IO
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if config.get('ENABLE_SOCKETIO') %}
+            const socket = io();
+            
+            socket.on('delivery_update', function(data) {
+                // Update UI with real-time data
+                showNotification('New delivery assignment received!');
+                updateDeliveryStats();
+            });
+            
+            socket.on('status_update', function(data) {
+                // Update specific delivery status
+                updateDeliveryStatus(data.delivery_id, data.status);
+            });
+            {% endif %}
+        });
+
+        function showNotification(message) {
+            // Create and show notification
+            const notification = document.createElement('div');
+            notification.className = 'alert alert-info alert-dismissible fade show';
+            notification.innerHTML = `
+                <i class="fas fa-bell me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.main-content').insertBefore(notification, document.querySelector('.main-content').firstChild);
+        }
+
+        function updateDeliveryStats() {
+            // Refresh stats via AJAX
+            fetch('/api/delivery/stats')
+                .then(response => response.json())
+                .then(data => {
+                    // Update stats cards
+                    document.querySelectorAll('[data-stat]').forEach(card => {
+                        const statType = card.getAttribute('data-stat');
+                        if (data[statType] !== undefined) {
+                            card.querySelector('h3').textContent = data[statType];
+                        }
+                    });
+                });
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

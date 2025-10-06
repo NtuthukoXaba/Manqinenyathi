@@ -1,0 +1,298 @@
+{% extends "delivery_base.html" %}
+
+{% block title %}My Deliveries | Manqinenyathi Food Supply{% endblock %}
+
+{% block page_title %}My Deliveries{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Filter Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="status" class="form-label">Filter by Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="">All Deliveries</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Delivered">Delivered</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="date" class="form-label">Filter by Date</label>
+                        <input type="date" class="form-control" id="date" name="date">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <div>
+                            <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                            <a href="{{ url_for('delivery_my_deliveries') }}" class="btn btn-outline-secondary">Reset</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Deliveries Table -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>Assigned Deliveries</h5>
+            </div>
+            <div class="card-body">
+                {% if deliveries %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>School</th>
+                                <th>Location</th>
+                                <th>Delivery Date</th>
+                                <th>Scheduled Time</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for delivery in deliveries %}
+                            <tr>
+                                <td>
+                                    <strong>{{ delivery.school.school_name }}</strong>
+                                    {% if delivery.school.contact_person %}
+                                    <br><small class="text-muted">Contact: {{ delivery.school.contact_person }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ delivery.location }}</td>
+                                <td>{{ delivery.delivery_date.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% if delivery.delivery_date %}
+                                        {{ delivery.delivery_date.strftime('%H:%M') }}
+                                    {% else %}
+                                        Not specified
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge {% if delivery.status == 'Delivered' %}bg-success{% else %}bg-warning{% endif %}">
+                                        {{ delivery.status }}
+                                    </span>
+                                    {% if delivery.delivered_time %}
+                                    <br><small>Completed: {{ delivery.delivered_time.strftime('%H:%M') }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if delivery.status == 'Pending' %}
+                                    <button class="btn btn-sm btn-primary mark-delivered-btn" 
+                                            data-delivery-id="{{ delivery.delivery_id }}"
+                                            data-school-name="{{ delivery.school.school_name }}">
+                                        <i class="fas fa-check-circle me-1"></i> Mark Delivered
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-outline-success" disabled>
+                                        <i class="fas fa-check"></i> Completed
+                                    </button>
+                                    {% endif %}
+                                    
+                                    <button class="btn btn-sm btn-outline-info mt-1 view-details-btn"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#deliveryDetailsModal"
+                                            data-delivery-id="{{ delivery.delivery_id }}"
+                                            data-school-name="{{ delivery.school.school_name }}"
+                                            data-location="{{ delivery.location }}"
+                                            data-contact-person="{{ delivery.school.contact_person }}"
+                                            data-contact-number="{{ delivery.school.contact_number }}"
+                                            data-remarks="{{ delivery.remarks or 'No remarks' }}">
+                                        <i class="fas fa-info-circle"></i> Details
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if pagination %}
+                <nav aria-label="Delivery pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('delivery_my_deliveries', page=pagination.prev_num, status=request.args.get('status'), date=request.args.get('date')) }}">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in pagination.iter_pages() %}
+                            {% if page_num %}
+                                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('delivery_my_deliveries', page=page_num, status=request.args.get('status'), date=request.args.get('date')) }}">{{ page_num }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('delivery_my_deliveries', page=pagination.next_num, status=request.args.get('status'), date=request.args.get('date')) }}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-truck fa-3x text-muted mb-3"></i>
+                    <h5>No deliveries assigned</h5>
+                    <p class="text-muted">You don't have any deliveries assigned to you at the moment.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delivery Details Modal -->
+<div class="modal fade" id="deliveryDetailsModal" tabindex="-1" aria-labelledby="deliveryDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deliveryDetailsModalLabel">Delivery Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>School:</strong></div>
+                    <div class="col-sm-8" id="detail-school-name"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Location:</strong></div>
+                    <div class="col-sm-8" id="detail-location"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Contact Person:</strong></div>
+                    <div class="col-sm-8" id="detail-contact-person"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Contact Number:</strong></div>
+                    <div class="col-sm-8" id="detail-contact-number"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Remarks:</strong></div>
+                    <div class="col-sm-8" id="detail-remarks"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mark as delivered functionality
+    document.querySelectorAll('.mark-delivered-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const deliveryId = this.getAttribute('data-delivery-id');
+            const schoolName = this.getAttribute('data-school-name');
+            
+            // Set modal content
+            document.getElementById('deliveryModalLabel').textContent = `Mark Delivery as Completed - ${schoolName}`;
+            
+            // Set current time as default
+            const now = new Date();
+            const timeString = now.toTimeString().slice(0,5);
+            document.getElementById('deliveryTime').value = timeString;
+            
+            // Store delivery ID for form submission
+            document.getElementById('confirmDelivery').setAttribute('data-delivery-id', deliveryId);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('deliveryModal'));
+            modal.show();
+        });
+    });
+
+    // Delivery details modal
+    document.querySelectorAll('.view-details-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            document.getElementById('detail-school-name').textContent = this.getAttribute('data-school-name');
+            document.getElementById('detail-location').textContent = this.getAttribute('data-location');
+            document.getElementById('detail-contact-person').textContent = this.getAttribute('data-contact-person') || 'Not specified';
+            document.getElementById('detail-contact-number').textContent = this.getAttribute('data-contact-number') || 'Not specified';
+            document.getElementById('detail-remarks').textContent = this.getAttribute('data-remarks');
+        });
+    });
+
+    // Handle delivery confirmation from the shared modal
+    document.getElementById('confirmDelivery').addEventListener('click', function() {
+        const deliveryId = this.getAttribute('data-delivery-id');
+        const deliveryTime = document.getElementById('deliveryTime').value;
+        const deliveryNotes = document.getElementById('deliveryNotes').value;
+        const hasIssues = document.getElementById('issuesCheck').checked;
+
+        if (!deliveryTime) {
+            alert('Please enter delivery time');
+            return;
+        }
+
+        // Send delivery completion to server
+        fetch('/api/delivery/complete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                delivery_id: deliveryId,
+                delivery_time: deliveryTime,
+                notes: deliveryNotes,
+                has_issues: hasIssues
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    Delivery marked as completed successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.main-content').insertBefore(alertDiv, document.querySelector('.main-content').firstChild);
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deliveryModal'));
+                modal.hide();
+
+                // Reload page to reflect changes
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error completing delivery. Please try again.');
+        });
+    });
+
+    // Apply filters from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const statusFilter = urlParams.get('status');
+    const dateFilter = urlParams.get('date');
+    
+    if (statusFilter) {
+        document.getElementById('status').value = statusFilter;
+    }
+    if (dateFilter) {
+        document.getElementById('date').value = dateFilter;
+    }
+});
+</script>
+{% endblock %}
