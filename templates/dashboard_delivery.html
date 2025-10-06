@@ -18,7 +18,7 @@
             <div class="card-icon">
                 <i class="fas fa-truck"></i>
             </div>
-            <h3 data-stat="total_deliveries">{{ total_deliveries }}</h3>
+            <h3>{{ total_deliveries }}</h3>
             <p>Total Deliveries Today</p>
         </div>
     </div>
@@ -27,7 +27,7 @@
             <div class="card-icon">
                 <i class="fas fa-check-circle"></i>
             </div>
-            <h3 data-stat="completed_deliveries">{{ completed_deliveries }}</h3>
+            <h3>{{ completed_deliveries }}</h3>
             <p>Completed Deliveries</p>
         </div>
     </div>
@@ -36,7 +36,7 @@
             <div class="card-icon">
                 <i class="fas fa-clock"></i>
             </div>
-            <h3 data-stat="pending_deliveries">{{ pending_deliveries|length }}</h3>
+            <h3>{{ pending_deliveries|length }}</h3>
             <p>Pending Deliveries</p>
         </div>
     </div>
@@ -45,16 +45,31 @@
             <div class="card-icon">
                 <i class="fas fa-road"></i>
             </div>
-            <h3 data-stat="distance_covered">{{ distance_covered }} km</h3>
-            <p>Distance Covered Today</p>
+            <h3>{{ distance_covered }} km</h3>
+            <p>Distance Covered</p>
         </div>
     </div>
 </div>
 
-<!-- Main Content Row -->
-<div class="row">
-    <!-- Today's Deliveries -->
+<!-- Performance Stats -->
+<div class="row mb-4">
     <div class="col-md-6">
+        <div class="stats-card">
+            <h5>On-Time Delivery Rate</h5>
+            <h3>{{ on_time_rate }}%</h3>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stats-card">
+            <h5>Average Delivery Time</h5>
+            <h3>{{ avg_delivery_time }} min</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Deliveries -->
+<div class="row">
+    <div class="col-12">
         <div class="table-container">
             <h3><i class="fas fa-list me-2"></i>Today's Deliveries</h3>
             <div class="table-responsive">
@@ -63,21 +78,35 @@
                         <tr>
                             <th>School</th>
                             <th>Location</th>
-                            <th>Time</th>
+                            <th>Contact</th>
                             <th>Status</th>
-                            <th>Action</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for delivery in todays_deliveries %}
                         <tr>
-                            <td>{{ delivery.school.school_name }}</td>
-                            <td>{{ delivery.location }}</td>
-                            <td>{{ delivery.delivery_date.strftime('%H:%M') if delivery.delivery_date else 'N/A' }}</td>
                             <td>
-                                <span class="status-badge status-{{ delivery.status|lower|replace(' ', '-') }}">
-                                    {{ delivery.status }}
+                                <strong>{{ delivery.school.school_name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ delivery.school.contact_person }}</small>
+                            </td>
+                            <td>{{ delivery.location }}</td>
+                            <td>{{ delivery.school.contact_number }}</td>
+                            <td>
+                                {% if delivery.status == 'Delivered' %}
+                                <span class="status-badge status-delivered">
+                                    <i class="fas fa-check me-1"></i>Delivered
                                 </span>
+                                {% if delivery.delivered_time %}
+                                <br>
+                                <small class="text-muted">{{ delivery.delivered_time.strftime('%H:%M') }}</small>
+                                {% endif %}
+                                {% else %}
+                                <span class="status-badge status-pending">
+                                    <i class="fas fa-clock me-1"></i>Pending
+                                </span>
+                                {% endif %}
                             </td>
                             <td>
                                 {% if delivery.status == 'Pending' %}
@@ -86,154 +115,87 @@
                                         data-bs-target="#deliveryModal"
                                         data-delivery-id="{{ delivery.delivery_id }}"
                                         data-school-name="{{ delivery.school.school_name }}">
-                                    <i class="fas fa-edit"></i>
+                                    <i class="fas fa-check me-1"></i> Complete
                                 </button>
-                                {% elif delivery.status == 'Delivered' %}
-                                <button class="btn btn-sm btn-outline-primary" disabled>
-                                    <i class="fas fa-check"></i>
+                                <button class="btn btn-sm btn-outline-primary" onclick="getDirections('{{ delivery.location }}')">
+                                    <i class="fas fa-directions me-1"></i> Directions
                                 </button>
                                 {% else %}
-                                <button class="btn btn-sm btn-outline-secondary" disabled>
-                                    <i class="fas fa-clock"></i>
+                                <button class="btn btn-sm btn-outline-success" disabled>
+                                    <i class="fas fa-check"></i> Done
                                 </button>
                                 {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                <i class="fas fa-truck fa-2x mb-2"></i>
+                                <br>
+                                No deliveries scheduled for today
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            <div class="text-end">
-                <a href="{{ url_for('delivery_my_deliveries') }}" class="btn btn-outline-primary">View All Deliveries</a>
-            </div>
-        </div>
-        
-        <!-- Delivery Stats -->
-        <div class="row">
-            <div class="col-md-6">
-                <div class="stats-card">
-                    <h5>On-Time Delivery Rate</h5>
-                    <h3>{{ on_time_rate }}%</h3>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="stats-card">
-                    <h5>Average Delivery Time</h5>
-                    <h3>{{ avg_delivery_time }} min</h3>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Delivery Details and Map -->
-    <div class="col-md-6">
-        <!-- Current Delivery -->
-        {% if current_delivery %}
-        <div class="delivery-card in-progress">
-            <h5><i class="fas fa-truck-loading me-2"></i>Current Delivery</h5>
-            <div class="delivery-info">
-                <div class="info-item">
-                    <i class="fas fa-school"></i>
-                    <span>{{ current_delivery.school.school_name }}</span>
-                </div>
-                <div class="info-item">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <span>{{ current_delivery.location }}</span>
-                </div>
-            </div>
-            <div class="delivery-info">
-                <div class="info-item">
-                    <i class="fas fa-clock"></i>
-                    <span>Scheduled: {{ current_delivery.delivery_date.strftime('%H:%M') }}</span>
-                </div>
-                <div class="info-item">
-                    <i class="fas fa-phone"></i>
-                    <span>Contact: {{ current_delivery.school.contact_number }}</span>
-                </div>
-            </div>
-            <div class="mt-3">
-                <button class="btn btn-primary me-2" 
-                        data-bs-toggle="modal" 
-                        data-bs-target="#deliveryModal"
-                        data-delivery-id="{{ current_delivery.delivery_id }}"
-                        data-school-name="{{ current_delivery.school.school_name }}">
-                    <i class="fas fa-check-circle me-1"></i> Mark as Delivered
-                </button>
-                <button class="btn btn-outline-primary" onclick="getDirections('{{ current_delivery.location }}')">
-                    <i class="fas fa-directions me-1"></i> Get Directions
-                </button>
-            </div>
-        </div>
-        {% endif %}
-        
-        <!-- Next Delivery -->
-        {% if next_delivery %}
-        <div class="delivery-card pending">
-            <h5><i class="fas fa-arrow-right me-2"></i>Next Delivery</h5>
-            <div class="delivery-info">
-                <div class="info-item">
-                    <i class="fas fa-school"></i>
-                    <span>{{ next_delivery.school.school_name }}</span>
-                </div>
-                <div class="info-item">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <span>{{ next_delivery.location }}</span>
-                </div>
-            </div>
-            <div class="delivery-info">
-                <div class="info-item">
-                    <i class="fas fa-clock"></i>
-                    <span>Scheduled: {{ next_delivery.delivery_date.strftime('%H:%M') }}</span>
-                </div>
-                <div class="info-item">
-                    <i class="fas fa-phone"></i>
-                    <span>Contact: {{ next_delivery.school.contact_number }}</span>
-                </div>
-            </div>
-            <div class="mt-3">
-                <button class="btn btn-outline-secondary" disabled>
-                    <i class="fas fa-clock me-1"></i> Pending
-                </button>
-                <button class="btn btn-outline-primary" onclick="previewRoute('{{ next_delivery.location }}')">
-                    <i class="fas fa-directions me-1"></i> Preview Route
-                </button>
-            </div>
-        </div>
-        {% endif %}
-        
-        <!-- Delivery Map -->
-        <div class="map-container">
-            <h3><i class="fas fa-map-marked-alt me-2"></i>Delivery Route</h3>
-            <div id="deliveryMap" style="height: 400px;"></div>
         </div>
     </div>
 </div>
+
+<!-- Current Focus Section -->
+{% if current_delivery %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="delivery-card in-progress">
+            <h5><i class="fas fa-bullseye me-2"></i>Current Focus</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="delivery-info">
+                        <div class="info-item mb-2">
+                            <i class="fas fa-school"></i>
+                            <span><strong>{{ current_delivery.school.school_name }}</strong></span>
+                        </div>
+                        <div class="info-item mb-2">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>{{ current_delivery.location }}</span>
+                        </div>
+                        <div class="info-item mb-2">
+                            <i class="fas fa-user"></i>
+                            <span>{{ current_delivery.school.contact_person }}</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-phone"></i>
+                            <span>{{ current_delivery.school.contact_number }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="text-end">
+                        <button class="btn btn-primary btn-lg me-2" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#deliveryModal"
+                                data-delivery-id="{{ current_delivery.delivery_id }}"
+                                data-school-name="{{ current_delivery.school.school_name }}">
+                            <i class="fas fa-check-circle me-1"></i> Mark as Delivered
+                        </button>
+                        <button class="btn btn-outline-primary btn-lg" onclick="getDirections('{{ current_delivery.location }}')">
+                            <i class="fas fa-directions me-1"></i> Get Directions
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    let deliveryMap;
     let currentDeliveryId = null;
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize map
-        deliveryMap = initMap();
-        
-        // Add delivery locations to map
-        const locations = [
-            {% for delivery in todays_deliveries %}
-            {
-                name: "{{ delivery.school.school_name }}",
-                lat: -26.1941 + (Math.random() * 0.05),
-                lng: 28.0373 + (Math.random() * 0.05),
-                status: "{{ delivery.status|lower|replace(' ', '-') }}",
-                address: "{{ delivery.location }}"
-            },
-            {% endfor %}
-        ];
-        
-        addDeliveryMarkers(deliveryMap, locations);
-        
         // Delivery modal handling
         const deliveryModal = document.getElementById('deliveryModal');
         if (deliveryModal) {
@@ -243,12 +205,16 @@
                 const schoolName = button.getAttribute('data-school-name');
                 
                 const modalTitle = deliveryModal.querySelector('.modal-title');
-                modalTitle.textContent = `Mark Delivery as Completed - ${schoolName}`;
+                modalTitle.textContent = `Complete Delivery - ${schoolName}`;
                 
                 // Set current time as default
                 const now = new Date();
                 const timeString = now.toTimeString().slice(0,5);
                 document.getElementById('deliveryTime').value = timeString;
+                
+                // Clear previous notes and issues
+                document.getElementById('deliveryNotes').value = '';
+                document.getElementById('issuesCheck').checked = false;
             });
         }
         
@@ -279,7 +245,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showNotification('Delivery marked as completed successfully!');
+                    showNotification('Delivery marked as completed successfully!', 'success');
                     
                     // Close modal
                     const modal = bootstrap.Modal.getInstance(deliveryModal);
@@ -288,64 +254,45 @@
                     // Reload page to reflect changes
                     setTimeout(() => {
                         window.location.reload();
-                    }, 1000);
+                    }, 1500);
                 } else {
-                    alert('Error: ' + data.message);
+                    showNotification('Error: ' + data.message, 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error completing delivery');
+                showNotification('Error completing delivery', 'error');
             });
         });
     });
     
-    function addDeliveryMarkers(map, locations) {
-        // Define custom icons
-        const deliveredIcon = L.divIcon({
-            html: '<i class="fas fa-check-circle" style="color: #28a745; font-size: 24px;"></i>',
-            iconSize: [24, 24],
-            className: 'custom-div-icon'
-        });
-        
-        const inProgressIcon = L.divIcon({
-            html: '<i class="fas fa-truck" style="color: #007bff; font-size: 24px;"></i>',
-            iconSize: [24, 24],
-            className: 'custom-div-icon'
-        });
-        
-        const pendingIcon = L.divIcon({
-            html: '<i class="fas fa-clock" style="color: #ffc107; font-size: 24px;"></i>',
-            iconSize: [24, 24],
-            className: 'custom-div-icon'
-        });
-        
-        // Add markers to map
-        locations.forEach(location => {
-            let icon;
-            if (location.status === "delivered") {
-                icon = deliveredIcon;
-            } else if (location.status === "in-progress") {
-                icon = inProgressIcon;
-            } else {
-                icon = pendingIcon;
-            }
-            
-            L.marker([location.lat, location.lng], {icon: icon})
-                .addTo(map)
-                .bindPopup(`<b>${location.name}</b><br>${location.address}<br>Status: ${location.status}`);
-        });
-    }
-    
     function getDirections(address) {
-        // Open directions in new tab
-        const encodedAddress = encodeURIComponent(address);
+        // Open directions in Google Maps
+        const encodedAddress = encodeURIComponent(address + ', Johannesburg, South Africa');
         window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`, '_blank');
     }
     
-    function previewRoute(address) {
-        // For demo purposes, just show the address
-        alert(`Preview route to: ${address}`);
+    function showNotification(message, type = 'info') {
+        const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+        const icon = type === 'error' ? 'exclamation-triangle' : 'check-circle';
+        
+        const notification = document.createElement('div');
+        notification.className = `alert ${alertClass} alert-dismissible fade show`;
+        notification.innerHTML = `
+            <i class="fas fa-${icon} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const mainContent = document.querySelector('.main-content');
+        mainContent.insertBefore(notification, mainContent.firstChild);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
     }
 </script>
 {% endblock %}
