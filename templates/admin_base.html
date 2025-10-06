@@ -195,10 +195,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="fas fa-user-clock"></i> Attendance
-                        </a>
-                    </li>
+                        <a class="nav-link {% if request.endpoint == 'admin_attendance' %}active{% endif %}" 
+                          href="{{ url_for('admin_attendance') }}">
+                             <i class="fas fa-user-clock"></i> Attendance
+                            </a>
+                        </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#">
                             <i class="fas fa-graduation-cap"></i> Learner Records

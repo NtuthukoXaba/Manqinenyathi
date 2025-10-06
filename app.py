@@ -717,6 +717,51 @@ def cooker_learners_records():
                          assigned_school=assigned_school,
                          today=today)
 
+@app.route('/admin/attendance')
+def admin_attendance():
+    if session.get('role') != 'admin':
+        return redirect(url_for('home'))
+    
+    # Get today's date for filtering
+    today = datetime.now().date()
+    
+    # Get all attendance records with cooker and school information
+    attendance_records = db.session.query(Attendance, User, School)\
+        .join(User, Attendance.cooker_id == User.user_id)\
+        .join(School, Attendance.school_id == School.school_id)\
+        .order_by(Attendance.date.desc(), Attendance.time_in.desc())\
+        .all()
+    
+    # Get today's attendance summary with cooker details
+    today_attendance = db.session.query(Attendance, User, School)\
+        .join(User, Attendance.cooker_id == User.user_id)\
+        .join(School, Attendance.school_id == School.school_id)\
+        .filter(Attendance.date == today)\
+        .all()
+    
+    # Calculate stats
+    total_cookers = User.query.filter_by(role='cooker').count()
+    total_cookers_today = len(today_attendance)
+    clocked_in_today = len([att for att, user, school in today_attendance if att.time_in and not att.time_out])
+    completed_today = len([att for att, user, school in today_attendance if att.time_in and att.time_out])
+    not_clocked_in_today = total_cookers - total_cookers_today
+    
+    # Get all cookers for the pending list
+    all_cookers = User.query.filter_by(role='cooker').all()
+    cookers_with_attendance_today = [user.user_id for att, user, school in today_attendance]
+    pending_cookers = [cooker for cooker in all_cookers if cooker.user_id not in cookers_with_attendance_today]
+    
+    return render_template('admin_attendance.html',
+                         attendance_records=attendance_records,
+                         today_attendance=today_attendance,
+                         total_cookers=total_cookers,
+                         total_cookers_today=total_cookers_today,
+                         clocked_in_today=clocked_in_today,
+                         completed_today=completed_today,
+                         not_clocked_in_today=not_clocked_in_today,
+                         pending_cookers=pending_cookers,
+                         today=today)
+
 @app.route('/debug/users')
 def debug_users():
     """Debug route to check if users are created"""

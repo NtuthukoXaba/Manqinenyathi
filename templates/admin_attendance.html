@@ -1,0 +1,199 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Attendance Monitoring | Manqinenyathi Food Supply{% endblock %}
+
+{% block page_title %}Cooker Attendance Monitoring{% endblock %}
+
+{% block content %}
+<!-- Attendance Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="dashboard-card">
+            <div class="card-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3>{{ total_cookers }}</h3>
+            <p>Total Cookers</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="dashboard-card">
+            <div class="card-icon">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <h3>{{ clocked_in_today }}</h3>
+            <p>Currently Working</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="dashboard-card">
+            <div class="card-icon">
+                <i class="fas fa-user-clock"></i>
+            </div>
+            <h3>{{ completed_today }}</h3>
+            <p>Completed Today</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="dashboard-card">
+            <div class="card-icon">
+                <i class="fas fa-calendar-day"></i>
+            </div>
+            <h3>{{ total_cookers_today }}/{{ total_cookers }}</h3>
+            <p>Present Today</p>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Summary -->
+<div class="content-card mb-4">
+    <h4 class="text-purple mb-4">
+        <i class="fas fa-chart-bar me-2"></i>Today's Attendance Summary ({{ today.strftime('%Y-%m-%d') }})
+    </h4>
+    
+    <div class="row">
+        <!-- Currently Working Cookers -->
+        <div class="col-md-6">
+            <h5 class="text-success">
+                <i class="fas fa-user-clock me-2"></i>Currently Working ({{ clocked_in_today }})
+            </h5>
+            <div class="list-group">
+                {% for record in today_attendance %}
+                    {% set att, user, school = record %}
+                    {% if att.time_in and not att.time_out %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ user.full_name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ school.school_name }}</small>
+                            <br>
+                            <small>Clocked in at {{ att.time_in.strftime('%H:%M') }}</small>
+                        </div>
+                        <span class="badge bg-success">Working</span>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <div class="list-group-item text-center text-muted py-3">
+                        <i class="fas fa-user-times fa-2x mb-2"></i>
+                        <p>No cookers currently working</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Pending Clock-Ins -->
+        <div class="col-md-6">
+            <h5 class="text-warning">
+                <i class="fas fa-user-times me-2"></i>Not Clocked In Today ({{ not_clocked_in_today }})
+            </h5>
+            <div class="list-group">
+                {% for cooker in pending_cookers %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ cooker.full_name }}</strong>
+                        <br>
+                        <small class="text-muted">{{ cooker.email }}</small>
+                    </div>
+                    <span class="badge bg-warning">Pending</span>
+                </div>
+                {% else %}
+                <div class="list-group-item text-center text-muted py-3">
+                    <i class="fas fa-user-check fa-2x mb-2"></i>
+                    <p>All cookers have clocked in today</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Records Table -->
+<div class="content-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="text-purple mb-0">
+            <i class="fas fa-list me-2"></i>All Attendance Records
+        </h4>
+        <span class="badge bg-purple">{{ attendance_records|length }} total records</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Cooker Name</th>
+                    <th>School</th>
+                    <th>Date</th>
+                    <th>Time In</th>
+                    <th>Time Out</th>
+                    <th>Work Hours</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in attendance_records %}
+                {% set att, user, school = record %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <img src="https://ui-avatars.com/api/?name={{ user.full_name|urlencode }}&background=6a0dad&color=fff" 
+                                 alt="{{ user.full_name }}" class="rounded-circle me-2" width="32" height="32">
+                            <div>
+                                <strong>{{ user.full_name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ user.email }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ school.school_name }}</td>
+                    <td>{{ att.date.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {% if att.time_in %}
+                            {{ att.time_in.strftime('%H:%M') }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if att.time_out %}
+                            {{ att.time_out.strftime('%H:%M') }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if att.time_in and att.time_out %}
+                            {% set hours = (att.time_out - att.time_in).total_seconds() / 3600 %}
+                            <strong>{{ "%.1f"|format(hours) }}h</strong>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if att.time_in and not att.time_out %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-user-clock me-1"></i> Working
+                            </span>
+                        {% elif att.time_in and att.time_out %}
+                            <span class="badge bg-info">
+                                <i class="fas fa-user-check me-1"></i> Completed
+                            </span>
+                        {% else %}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-user-times me-1"></i> Not Started
+                            </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-4">
+                        <i class="fas fa-user-clock fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No attendance records found</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
