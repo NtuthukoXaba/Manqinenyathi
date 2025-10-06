@@ -18,7 +18,7 @@
             <div class="card-icon">
                 <i class="fas fa-school"></i>
             </div>
-            <h3 id="assignedSchool">Springfield Primary</h3>
+            <h3 id="assignedSchool">{{ assigned_school.school_name if assigned_school else "Not Assigned" }}</h3>
             <p>Assigned School</p>
         </div>
     </div>
@@ -27,7 +27,7 @@
             <div class="card-icon">
                 <i class="fas fa-utensils"></i>
             </div>
-            <h3 id="learnersFed">245</h3>
+            <h3 id="learnersFed">{{ learners_fed_today }}</h3>
             <p>Learners Fed Today</p>
         </div>
     </div>
@@ -36,7 +36,7 @@
             <div class="card-icon">
                 <i class="fas fa-user-clock"></i>
             </div>
-            <h3 id="workHours">7.5 hrs</h3>
+            <h3 id="workHours">{{ work_hours }} hrs</h3>
             <p>Today's Work Hours</p>
         </div>
     </div>
@@ -45,7 +45,7 @@
             <div class="card-icon">
                 <i class="fas fa-calendar-check"></i>
             </div>
-            <h3 id="daysWorked">22/24</h3>
+            <h3 id="daysWorked">{{ days_worked }}</h3>
             <p>Days Worked This Month</p>
         </div>
     </div>
@@ -54,18 +54,20 @@
 <!-- Main Content Row -->
 <div class="row">
     <!-- Attendance Section -->
-    <div class="col-md-4">
+    <div class="col-md-6">
         <div class="attendance-card">
             <h3><i class="fas fa-user-clock me-2"></i>Attendance</h3>
             
             <div class="d-flex justify-content-between mb-3">
                 <div>
                     <h5>Current Status</h5>
-                    <span class="status-badge status-clocked-out" id="statusBadge">Clocked Out</span>
+                    <span class="status-badge {% if today_attendance and today_attendance.time_in and not today_attendance.time_out %}status-clocked-in{% else %}status-clocked-out{% endif %}" id="statusBadge">
+                        {% if today_attendance and today_attendance.time_in and not today_attendance.time_out %}Clocked In{% else %}Clocked Out{% endif %}
+                    </span>
                 </div>
                 <div class="text-end">
                     <h5>Today's Date</h5>
-                    <span id="todayDate">May 15, 2023</span>
+                    <span id="todayDate">{{ today.strftime('%B %d, %Y') }}</span>
                 </div>
             </div>
             
@@ -74,152 +76,95 @@
             </div>
             
             <div class="mb-4">
-                <button class="attendance-btn btn-clock-in" id="clockInBtn">
-                    <i class="fas fa-sign-in-alt me-2"></i>Clock In
-                </button>
-                <button class="attendance-btn btn-clock-out" id="clockOutBtn" disabled>
-                    <i class="fas fa-sign-out-alt me-2"></i>Clock Out
-                </button>
+                {% if not today_attendance or not today_attendance.time_in %}
+                <form method="POST" action="{{ url_for('clock_in') }}" class="d-inline w-100">
+                    <button type="submit" class="attendance-btn btn-clock-in" id="clockInBtn">
+                        <i class="fas fa-sign-in-alt me-2"></i>Clock In
+                    </button>
+                </form>
+                {% endif %}
+                
+                {% if today_attendance and today_attendance.time_in and not today_attendance.time_out %}
+                <form method="POST" action="{{ url_for('clock_out') }}" class="d-inline w-100">
+                    <button type="submit" class="attendance-btn btn-clock-out" id="clockOutBtn">
+                        <i class="fas fa-sign-out-alt me-2"></i>Clock Out
+                    </button>
+                </form>
+                {% endif %}
             </div>
             
             <div class="today-times">
                 <h5>Today's Times</h5>
                 <div class="d-flex justify-content-between">
                     <span>Time In:</span>
-                    <strong id="timeInDisplay">--:--</strong>
+                    <strong id="timeInDisplay">
+                        {% if today_attendance and today_attendance.time_in %}
+                            {{ today_attendance.time_in.strftime('%H:%M') }}
+                        {% else %}
+                            --:--
+                        {% endif %}
+                    </strong>
                 </div>
                 <div class="d-flex justify-content-between">
                     <span>Time Out:</span>
-                    <strong id="timeOutDisplay">--:--</strong>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Today's Summary -->
-        <div class="summary-card">
-            <h3><i class="fas fa-chart-pie me-2"></i>Today's Summary</h3>
-            <div class="row mt-3">
-                <div class="col-6">
-                    <h5>Learners Served</h5>
-                    <h3 id="summaryLearners">245</h3>
-                </div>
-                <div class="col-6">
-                    <h5>Meals Prepared</h5>
-                    <h3 id="summaryMeals">245</h3>
-                </div>
-            </div>
-            <div class="row mt-3">
-                <div class="col-6">
-                    <h5>Work Hours</h5>
-                    <h3 id="summaryHours">7.5 hrs</h3>
-                </div>
-                <div class="col-6">
-                    <h5>Efficiency</h5>
-                    <h3 id="summaryEfficiency">98%</h3>
+                    <strong id="timeOutDisplay">
+                        {% if today_attendance and today_attendance.time_out %}
+                            {{ today_attendance.time_out.strftime('%H:%M') }}
+                        {% else %}
+                            --:--
+                        {% endif %}
+                    </strong>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Learner Registration Section -->
-    <div class="col-md-8">
-        <div class="learner-form">
-            <h3><i class="fas fa-graduation-cap me-2"></i>Register Learners Served</h3>
-            <p class="text-muted mb-4">Record the learners who received meals today at <span id="formSchoolName">Springfield Primary</span> School.</p>
-            
-            <form id="learnerForm" method="POST" action="{{ url_for('add_learner') }}">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="learnerName" class="form-label">Learner Name *</label>
-                        <input type="text" class="form-control" id="learnerName" name="learner_name" placeholder="Enter learner's full name" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="grade" class="form-label">Grade/Class *</label>
-                        <select class="form-control" id="grade" name="grade" required>
-                            <option value="">Select Grade</option>
-                            <option value="Grade R">Grade R</option>
-                            <option value="Grade 1">Grade 1</option>
-                            <option value="Grade 2">Grade 2</option>
-                            <option value="Grade 3">Grade 3</option>
-                            <option value="Grade 4">Grade 4</option>
-                            <option value="Grade 5">Grade 5</option>
-                            <option value="Grade 6">Grade 6</option>
-                            <option value="Grade 7">Grade 7</option>
-                            <option value="Grade 8">Grade 8</option>
-                            <option value="Grade 9">Grade 9</option>
-                            <option value="Grade 10">Grade 10</option>
-                            <option value="Grade 11">Grade 11</option>
-                            <option value="Grade 12">Grade 12</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="mealType" class="form-label">Meal Type *</label>
-                        <select class="form-control" id="mealType" name="meal_type" required>
-                            <option value="Breakfast">Breakfast</option>
-                            <option value="Lunch">Lunch</option>
-                            <option value="Both">Both</option>
-                        </select>
-                    </div>
+    <!-- Today's Summary Section -->
+    <div class="col-md-6">
+        <div class="summary-card">
+            <h3><i class="fas fa-chart-pie me-2"></i>Today's Summary</h3>
+            <div class="row mt-3">
+                <div class="col-6">
+                    <h5>Learners Served</h5>
+                    <h3 id="summaryLearners">{{ learners_fed_today }}</h3>
                 </div>
-                <div class="mb-3">
-                    <label for="notes" class="form-label">Notes (Optional)</label>
-                    <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Any additional notes about this learner"></textarea>
+                <div class="col-6">
+                    <h5>Meals Prepared</h5>
+                    <h3 id="summaryMeals">{{ learners_fed_today }}</h3>
                 </div>
-                <div class="d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary" id="addMultipleBtn">
-                        <i class="fas fa-plus me-1"></i> Add Multiple
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-1"></i> Save Learner Record
-                    </button>
+            </div>
+            <div class="row mt-3">
+                <div class="col-6">
+                    <h5>Work Hours</h5>
+                    <h3 id="summaryHours">{{ work_hours }} hrs</h3>
                 </div>
-            </form>
+                <div class="col-6">
+                    <h5>Efficiency</h5>
+                    <h3 id="summaryEfficiency">
+                        {% if learners_fed_today > 0 %}
+                            {{ (learners_fed_today / (work_hours if work_hours > 0 else 1)) | round | int }}/hr
+                        {% else %}
+                            0/hr
+                        {% endif %}
+                    </h3>
+                </div>
+            </div>
         </div>
         
-        <!-- Recent Learners Table -->
-        <div class="table-container">
-            <h3><i class="fas fa-list me-2"></i>Today's Learners Served</h3>
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Learner Name</th>
-                            <th>Grade</th>
-                            <th>Meal Type</th>
-                            <th>Time Served</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="learnersTableBody">
-                        <!-- Learners will be populated dynamically -->
-                        <tr>
-                            <td>James Wilson</td>
-                            <td>Grade 3</td>
-                            <td>Lunch</td>
-                            <td>12:15 PM</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Sarah Johnson</td>
-                            <td>Grade 5</td>
-                            <td>Lunch</td>
-                            <td>12:20 PM</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="text-muted" id="learnersCount">Showing 2 of 245 learners served today</div>
-                <a href="#" class="btn btn-sm btn-outline-primary">View All Learners</a>
+        <!-- Quick Actions -->
+        <div class="content-card mt-4">
+            <h3><i class="fas fa-bolt me-2"></i>Quick Actions</h3>
+            <div class="row mt-3">
+                <div class="col-6">
+                    <a href="{{ url_for('cooker_learners_records') }}" class="btn btn-primary w-100 mb-2">
+                        <i class="fas fa-graduation-cap me-1"></i> Manage Learners
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="{{ url_for('cooker_attendance') }}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="fas fa-history me-1"></i> View Attendance
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -228,7 +173,7 @@
 
 {% block extra_css %}
 <style>
-    /* Dashboard Cards */
+    /* Your existing CSS styles remain the same */
     .dashboard-card {
         background-color: var(--white);
         border-radius: 10px;
@@ -271,8 +216,7 @@
         margin: 0;
     }
     
-    /* Attendance Card */
-    .attendance-card {
+    .attendance-card, .summary-card, .content-card {
         background-color: var(--white);
         border-radius: 10px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
@@ -280,7 +224,7 @@
         margin-bottom: 20px;
     }
     
-    .attendance-card h3 {
+    .attendance-card h3, .summary-card h3, .content-card h3 {
         color: var(--primary-purple);
         margin-bottom: 20px;
         font-weight: 700;
@@ -323,59 +267,6 @@
         background-color: #c82333;
     }
     
-    .btn-clock-out:disabled {
-        background-color: var(--medium-gray);
-        color: var(--dark-gray);
-    }
-    
-    /* Learner Form */
-    .learner-form {
-        background-color: var(--white);
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        padding: 25px;
-        margin-bottom: 20px;
-    }
-    
-    .learner-form h3 {
-        color: var(--primary-purple);
-        margin-bottom: 20px;
-        font-weight: 700;
-    }
-    
-    .form-control {
-        border: 1px solid var(--medium-gray);
-        border-radius: 8px;
-        padding: 10px 15px;
-    }
-    
-    .form-control:focus {
-        border-color: var(--primary-purple);
-        box-shadow: 0 0 0 0.2rem rgba(106, 13, 173, 0.25);
-    }
-    
-    /* Recent Learners Table */
-    .table-container {
-        background-color: var(--white);
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-    
-    .table-container h3 {
-        color: var(--primary-purple);
-        margin-bottom: 20px;
-        font-weight: 700;
-    }
-    
-    .table th {
-        background-color: rgba(106, 13, 173, 0.1);
-        color: var(--primary-purple);
-        border-top: none;
-    }
-    
-    /* Status Indicators */
     .status-badge {
         padding: 5px 10px;
         border-radius: 20px;
@@ -391,28 +282,6 @@
     .status-clocked-out {
         background-color: rgba(220, 53, 69, 0.1);
         color: #dc3545;
-    }
-    
-    /* Today's Summary */
-    .summary-card {
-        background-color: var(--white);
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        padding: 20px;
-        margin-bottom: 20px;
-        border-left: 4px solid var(--primary-purple);
-    }
-    
-    .summary-card h5 {
-        color: var(--dark-gray);
-        font-size: 14px;
-        margin-bottom: 5px;
-    }
-    
-    .summary-card h3 {
-        color: var(--primary-purple);
-        font-weight: 700;
-        margin-bottom: 0;
     }
 </style>
 {% endblock %}
@@ -432,75 +301,10 @@
             day: 'numeric' 
         });
         document.getElementById('currentDate').textContent = dateString;
-        document.getElementById('todayDate').textContent = dateString;
     }
     
     // Update time every second
     setInterval(updateTime, 1000);
     updateTime(); // Initial call
-    
-    // Clock In/Out functionality
-    document.getElementById('clockInBtn').addEventListener('click', function() {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        
-        document.getElementById('timeInDisplay').textContent = timeString;
-        document.getElementById('timeOutDisplay').textContent = '--:--';
-        
-        // Update status badge
-        const statusBadge = document.getElementById('statusBadge');
-        statusBadge.className = 'status-badge status-clocked-in';
-        statusBadge.textContent = 'Clocked In';
-        
-        // Enable clock out button
-        document.getElementById('clockOutBtn').disabled = false;
-        this.disabled = true;
-        
-        // Show success message
-        alert('Successfully clocked in at ' + timeString);
-    });
-    
-    document.getElementById('clockOutBtn').addEventListener('click', function() {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        
-        document.getElementById('timeOutDisplay').textContent = timeString;
-        
-        // Update status badge
-        const statusBadge = document.getElementById('statusBadge');
-        statusBadge.className = 'status-badge status-clocked-out';
-        statusBadge.textContent = 'Clocked Out';
-        
-        // Enable clock in button
-        document.getElementById('clockInBtn').disabled = false;
-        this.disabled = true;
-        
-        // Show success message
-        alert('Successfully clocked out at ' + timeString);
-    });
-    
-    // Form submission
-    document.getElementById('learnerForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const learnerName = document.getElementById('learnerName').value;
-        const grade = document.getElementById('grade').value;
-        
-        if (!learnerName || !grade) {
-            alert('Please fill in all required fields');
-            return;
-        }
-        
-        // In a real application, you would send this data to the server
-        alert('Learner record saved successfully!');
-        
-        // Reset form
-        this.reset();
-    });
-    
-    // Add Multiple functionality
-    document.getElementById('addMultipleBtn').addEventListener('click', function() {
-        alert('Multiple learner addition feature would open here in a real application.');
-    });
 </script>
 {% endblock %}

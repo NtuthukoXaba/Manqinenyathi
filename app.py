@@ -133,7 +133,52 @@ def dashboard_admin():
 def dashboard_cooker():
     if session.get('role') != 'cooker':
         return redirect(url_for('home'))
-    return render_template('dashboard_cooker.html')
+    
+    user_id = session.get('user_id')
+    today = datetime.now().date()
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+    
+    # Get assigned school for the cooker
+    assigned_school = School.query.first()  # Modify this based on your assignment logic
+    
+    # Get today's learners count
+    learners_fed_today = Learner.query.filter_by(
+        cooker_id=user_id, 
+        date_served=today
+    ).count()
+    
+    # Get today's attendance record
+    today_attendance = Attendance.query.filter_by(
+        cooker_id=user_id, 
+        date=today
+    ).first()
+    
+    # Calculate work hours for today
+    work_hours = 0
+    if today_attendance and today_attendance.time_in and today_attendance.time_out:
+        time_diff = today_attendance.time_out - today_attendance.time_in
+        work_hours = round(time_diff.total_seconds() / 3600, 1)
+    
+    # Calculate days worked this month
+    days_worked_this_month = Attendance.query.filter(
+        Attendance.cooker_id == user_id,
+        db.extract('month', Attendance.date) == current_month,
+        db.extract('year', Attendance.date) == current_year,
+        Attendance.time_in.isnot(None)
+    ).count()
+    
+    # Total days in current month
+    import calendar
+    total_days_in_month = calendar.monthrange(current_year, current_month)[1]
+    
+    return render_template('dashboard_cooker.html',
+                         assigned_school=assigned_school,
+                         learners_fed_today=learners_fed_today,
+                         work_hours=work_hours,
+                         days_worked=f"{days_worked_this_month}/{total_days_in_month}",
+                         today_attendance=today_attendance,
+                         today=today)
 
 @app.route('/dashboard/delivery')
 def dashboard_delivery():
