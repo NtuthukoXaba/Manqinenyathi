@@ -1,0 +1,60 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Add Worker | Manqinenyathi Food Supply{% endblock %}
+
+{% block page_title %}Add New Worker{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <form method="POST">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="full_name" class="form-label">Full Name *</label>
+                    <input type="text" class="form-control" id="full_name" name="full_name" required 
+                           placeholder="Enter worker's full name">
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email Address *</label>
+                    <input type="email" class="form-control" id="email" name="email" required 
+                           placeholder="Enter email address">
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password *</label>
+                    <input type="password" class="form-control" id="password" name="password" required 
+                           placeholder="Enter password">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="role" class="form-label">Role *</label>
+                    <select class="form-control" id="role" name="role" required>
+                        <option value="">Select Role</option>
+                        <option value="cooker">Cooker</option>
+                        <option value="delivery">Delivery Personnel</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Phone Number *</label>
+                    <input type="tel" class="form-control" id="phone" name="phone" required 
+                           placeholder="Enter phone number">
+                </div>
+                <div class="mb-3">
+                    <div class="form-text">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Workers will use their email and password to login to their respective dashboards.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{{ url_for('manage_workers') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Workers
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> Add Worker
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

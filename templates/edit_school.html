@@ -1,0 +1,38 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Edit School | Manqinenyathi Food Supply{% endblock %}
+
+{% block page_title %}Edit School{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <form method="POST">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="school_name" class="form-label">School Name *</label>
+                    <input type="text" class="form-control" id="school_name" name="school_name" value="{{ school.school_name }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="location" class="form-label">Location *</label>
+                    <input type="text" class="form-control" id="location" name="location" value="{{ school.location }}" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="contact_person" class="form-label">Contact Person *</label>
+                    <input type="text" class="form-control" id="contact_person" name="contact_person" value="{{ school.contact_person }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="contact_number" class="form-label">Contact Number *</label>
+                    <input type="tel" class="form-control" id="contact_number" name="contact_number" value="{{ school.contact_number }}" required>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between">
+            <a href="{{ url_for('manage_schools') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Update School</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

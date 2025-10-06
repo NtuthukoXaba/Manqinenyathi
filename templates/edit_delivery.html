@@ -1,0 +1,69 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Edit Delivery | Manqinenyathi Food Supply{% endblock %}
+
+{% block page_title %}Edit Delivery Assignment{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <form method="POST">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="school_id" class="form-label">School *</label>
+                    <select class="form-control" id="school_id" name="school_id" required>
+                        <option value="">Select School</option>
+                        {% for school in schools %}
+                        <option value="{{ school.school_id }}" {% if school.school_id == delivery.school_id %}selected{% endif %}>
+                            {{ school.school_name }} - {{ school.location }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="delivery_date" class="form-label">Delivery Date *</label>
+                    <input type="date" class="form-control" id="delivery_date" name="delivery_date" 
+                           value="{{ delivery.delivery_date.strftime('%Y-%m-%d') }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="location" class="form-label">Delivery Location *</label>
+                    <input type="text" class="form-control" id="location" name="location" 
+                           value="{{ delivery.location }}" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="delivery_guy_id" class="form-label">Delivery Personnel *</label>
+                    <select class="form-control" id="delivery_guy_id" name="delivery_guy_id" required>
+                        <option value="">Select Delivery Personnel</option>
+                        {% for delivery_guy in delivery_guys %}
+                        <option value="{{ delivery_guy.user_id }}" {% if delivery_guy.user_id == delivery.delivery_guy_id %}selected{% endif %}>
+                            {{ delivery_guy.full_name }} - {{ delivery_guy.phone }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="status" class="form-label">Status *</label>
+                    <select class="form-control" id="status" name="status" required>
+                        <option value="Pending" {% if delivery.status == 'Pending' %}selected{% endif %}>Pending</option>
+                        <option value="Delivered" {% if delivery.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="remarks" class="form-label">Remarks</label>
+                    <textarea class="form-control" id="remarks" name="remarks" rows="3">{{ delivery.remarks or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{{ url_for('manage_deliveries') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> Update Delivery
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,686 +1,506 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cooker Dashboard | Manqinenyathi Food Supply</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-purple: #6a0dad;
-            --light-purple: #8a2be2;
-            --dark-purple: #4b0082;
-            --accent-purple: #9370db;
-            --white: #ffffff;
-            --light-gray: #f8f9fa;
-            --medium-gray: #e9ecef;
-            --dark-gray: #6c757d;
-            --text-dark: #343a40;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--light-gray);
-            color: var(--text-dark);
-        }
-        
-        /* Sidebar Styles */
-        .sidebar {
-            background: linear-gradient(180deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
-            color: var(--white);
-            height: 100vh;
-            position: fixed;
-            padding-top: 20px;
-            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        }
-        
-        .sidebar .logo {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            margin-bottom: 20px;
-        }
-        
-        .sidebar .logo h3 {
-            font-weight: 700;
-            margin: 0;
-        }
-        
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 12px 20px;
-            margin: 5px 0;
-            border-radius: 5px;
-            transition: all 0.3s;
-        }
-        
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
-            color: var(--white);
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        
-        .sidebar .nav-link i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
-        }
-        
-        /* Main Content Styles */
-        .main-content {
-            margin-left: 250px;
-            padding: 20px;
-        }
-        
-        .header {
-            background-color: var(--white);
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .header h1 {
-            color: var(--primary-purple);
-            font-weight: 700;
-            margin: 0;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-        }
-        
-        .user-info img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: 10px;
-            border: 2px solid var(--primary-purple);
-        }
-        
-        /* Dashboard Cards */
-        .dashboard-card {
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-            margin-bottom: 20px;
-            transition: transform 0.3s;
-            border-top: 4px solid var(--primary-purple);
-        }
-        
-        .dashboard-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .dashboard-card .card-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background-color: rgba(106, 13, 173, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        
-        .dashboard-card .card-icon i {
-            font-size: 24px;
-            color: var(--primary-purple);
-        }
-        
-        .dashboard-card h3 {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 5px;
-            color: var(--primary-purple);
-        }
-        
-        .dashboard-card p {
-            color: var(--dark-gray);
-            margin: 0;
-        }
-        
-        /* Attendance Card */
-        .attendance-card {
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 25px;
-            margin-bottom: 20px;
-        }
-        
-        .attendance-card h3 {
-            color: var(--primary-purple);
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        
-        .time-display {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary-purple);
-            text-align: center;
-            margin: 15px 0;
-        }
-        
-        .attendance-btn {
-            padding: 12px 25px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 8px;
-            border: none;
-            transition: all 0.3s;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-        
-        .btn-clock-in {
-            background-color: var(--primary-purple);
-            color: white;
-        }
-        
-        .btn-clock-in:hover {
-            background-color: var(--dark-purple);
-        }
-        
-        .btn-clock-out {
-            background-color: #dc3545;
-            color: white;
-        }
-        
-        .btn-clock-out:hover {
-            background-color: #c82333;
-        }
-        
-        .btn-clock-out:disabled {
-            background-color: var(--medium-gray);
-            color: var(--dark-gray);
-        }
-        
-        /* Learner Form */
-        .learner-form {
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 25px;
-            margin-bottom: 20px;
-        }
-        
-        .learner-form h3 {
-            color: var(--primary-purple);
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        
-        .form-control {
-            border: 1px solid var(--medium-gray);
-            border-radius: 8px;
-            padding: 10px 15px;
-        }
-        
-        .form-control:focus {
-            border-color: var(--primary-purple);
-            box-shadow: 0 0 0 0.2rem rgba(106, 13, 173, 0.25);
-        }
-        
-        .btn-primary {
-            background-color: var(--primary-purple);
-            border-color: var(--primary-purple);
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-        }
-        
-        .btn-primary:hover {
-            background-color: var(--dark-purple);
-            border-color: var(--dark-purple);
-        }
-        
-        /* Recent Learners Table */
-        .table-container {
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .table-container h3 {
-            color: var(--primary-purple);
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        
-        .table th {
-            background-color: rgba(106, 13, 173, 0.1);
-            color: var(--primary-purple);
-            border-top: none;
-        }
-        
-        /* Status Indicators */
-        .status-badge {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .status-clocked-in {
-            background-color: rgba(40, 167, 69, 0.1);
-            color: #28a745;
-        }
-        
-        .status-clocked-out {
-            background-color: rgba(220, 53, 69, 0.1);
-            color: #dc3545;
-        }
-        
-        /* Today's Summary */
-        .summary-card {
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--primary-purple);
-        }
-        
-        .summary-card h5 {
-            color: var(--dark-gray);
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-        
-        .summary-card h3 {
-            color: var(--primary-purple);
-            font-weight: 700;
-            margin-bottom: 0;
-        }
-        
-        /* Alert Styles */
-        .alert-info {
-            background-color: rgba(106, 13, 173, 0.1);
-            border-color: rgba(106, 13, 173, 0.2);
-            color: var(--primary-purple);
-        }
-    </style>
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-2 sidebar d-none d-md-block">
-                <div class="logo">
-                    <h3><i class="fas fa-utensils me-2"></i>Manqinenyathi</h3>
-                    <p class="text-muted small">Food Supply System</p>
+{% extends "cooker_base.html" %}
+
+{% block title %}Cooker Dashboard | Manqinenyathi Food Supply{% endblock %}
+
+{% block page_title %}Cooker Dashboard{% endblock %}
+
+{% block content %}
+<!-- Alert -->
+<div class="alert alert-info d-flex align-items-center" role="alert">
+    <i class="fas fa-info-circle me-2"></i>
+    <div>Welcome back! Today's date is <strong id="currentDate">{{ today }}</strong>. Remember to clock in when you start and clock out when you finish.</div>
+</div>
+
+<!-- Dashboard Stats -->
+<div class="row">
+    <div class="col-md-3">
+        <div class="dashboard-card">
+            <div class="card-icon">
+                <i class="fas fa-school"></i>
+            </div>
+            <h3 id="assignedSchool">Springfield Primary</h3>
+            <p>Assigned School</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="dashboard-card">
+            <div class="card-icon">
+                <i class="fas fa-utensils"></i>
+            </div>
+            <h3 id="learnersFed">245</h3>
+            <p>Learners Fed Today</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="dashboard-card">
+            <div class="card-icon">
+                <i class="fas fa-user-clock"></i>
+            </div>
+            <h3 id="workHours">7.5 hrs</h3>
+            <p>Today's Work Hours</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="dashboard-card">
+            <div class="card-icon">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <h3 id="daysWorked">22/24</h3>
+            <p>Days Worked This Month</p>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Row -->
+<div class="row">
+    <!-- Attendance Section -->
+    <div class="col-md-4">
+        <div class="attendance-card">
+            <h3><i class="fas fa-user-clock me-2"></i>Attendance</h3>
+            
+            <div class="d-flex justify-content-between mb-3">
+                <div>
+                    <h5>Current Status</h5>
+                    <span class="status-badge status-clocked-out" id="statusBadge">Clocked Out</span>
                 </div>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-user-clock"></i> My Attendance</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-graduation-cap"></i> Learner Records</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-school"></i> My School</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-history"></i> My History</a>
-                    </li>
-                    <li class="nav-item mt-4">
-                        <a class="nav-link" href="#"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                    </li>
-                </ul>
+                <div class="text-end">
+                    <h5>Today's Date</h5>
+                    <span id="todayDate">May 15, 2023</span>
+                </div>
             </div>
             
-            <!-- Main Content -->
-            <div class="col-md-10 main-content">
-                <!-- Header -->
-                <div class="header">
-                    <h1><i class="fas fa-tachometer-alt me-2"></i>Cooker Dashboard</h1>
-                    <div class="user-info">
-                        <img src="https://ui-avatars.com/api/?name=Mary+Johnson&background=6a0dad&color=fff" alt="Mary Johnson">
-                        <div>
-                            <h6 class="mb-0">Mary Johnson</h6>
-                            <small class="text-muted">Cooker - Springfield Primary</small>
-                        </div>
-                    </div>
+            <div class="time-display" id="currentTime">
+                00:00:00
+            </div>
+            
+            <div class="mb-4">
+                <button class="attendance-btn btn-clock-in" id="clockInBtn">
+                    <i class="fas fa-sign-in-alt me-2"></i>Clock In
+                </button>
+                <button class="attendance-btn btn-clock-out" id="clockOutBtn" disabled>
+                    <i class="fas fa-sign-out-alt me-2"></i>Clock Out
+                </button>
+            </div>
+            
+            <div class="today-times">
+                <h5>Today's Times</h5>
+                <div class="d-flex justify-content-between">
+                    <span>Time In:</span>
+                    <strong id="timeInDisplay">--:--</strong>
                 </div>
-                
-                <!-- Alert -->
-                <div class="alert alert-info d-flex align-items-center" role="alert">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <div>Welcome back! Today's date is <strong>May 15, 2023</strong>. Remember to clock in when you start and clock out when you finish.</div>
+                <div class="d-flex justify-content-between">
+                    <span>Time Out:</span>
+                    <strong id="timeOutDisplay">--:--</strong>
                 </div>
-                
-                <!-- Dashboard Stats -->
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="dashboard-card">
-                            <div class="card-icon">
-                                <i class="fas fa-school"></i>
-                            </div>
-                            <h3>Springfield Primary</h3>
-                            <p>Assigned School</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="dashboard-card">
-                            <div class="card-icon">
-                                <i class="fas fa-utensils"></i>
-                            </div>
-                            <h3>245</h3>
-                            <p>Learners Fed Today</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="dashboard-card">
-                            <div class="card-icon">
-                                <i class="fas fa-user-clock"></i>
-                            </div>
-                            <h3>7.5 hrs</h3>
-                            <p>Today's Work Hours</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="dashboard-card">
-                            <div class="card-icon">
-                                <i class="fas fa-calendar-check"></i>
-                            </div>
-                            <h3>22/24</h3>
-                            <p>Days Worked This Month</p>
-                        </div>
-                    </div>
+            </div>
+        </div>
+        
+        <!-- Today's Summary -->
+        <div class="summary-card">
+            <h3><i class="fas fa-chart-pie me-2"></i>Today's Summary</h3>
+            <div class="row mt-3">
+                <div class="col-6">
+                    <h5>Learners Served</h5>
+                    <h3 id="summaryLearners">245</h3>
                 </div>
-                
-                <!-- Main Content Row -->
-                <div class="row">
-                    <!-- Attendance Section -->
-                    <div class="col-md-4">
-                        <div class="attendance-card">
-                            <h3><i class="fas fa-user-clock me-2"></i>Attendance</h3>
-                            
-                            <div class="d-flex justify-content-between mb-3">
-                                <div>
-                                    <h5>Current Status</h5>
-                                    <span class="status-badge status-clocked-out">Clocked Out</span>
-                                </div>
-                                <div class="text-end">
-                                    <h5>Today's Date</h5>
-                                    <span>May 15, 2023</span>
-                                </div>
-                            </div>
-                            
-                            <div class="time-display" id="currentTime">
-                                00:00:00
-                            </div>
-                            
-                            <div class="mb-4">
-                                <button class="attendance-btn btn-clock-in" id="clockInBtn">
-                                    <i class="fas fa-sign-in-alt me-2"></i>Clock In
-                                </button>
-                                <button class="attendance-btn btn-clock-out" id="clockOutBtn" disabled>
-                                    <i class="fas fa-sign-out-alt me-2"></i>Clock Out
-                                </button>
-                            </div>
-                            
-                            <div class="today-times">
-                                <h5>Today's Times</h5>
-                                <div class="d-flex justify-content-between">
-                                    <span>Time In:</span>
-                                    <strong id="timeInDisplay">--:--</strong>
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <span>Time Out:</span>
-                                    <strong id="timeOutDisplay">--:--</strong>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Today's Summary -->
-                        <div class="summary-card">
-                            <h3><i class="fas fa-chart-pie me-2"></i>Today's Summary</h3>
-                            <div class="row mt-3">
-                                <div class="col-6">
-                                    <h5>Learners Served</h5>
-                                    <h3>245</h3>
-                                </div>
-                                <div class="col-6">
-                                    <h5>Meals Prepared</h5>
-                                    <h3>245</h3>
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-6">
-                                    <h5>Work Hours</h5>
-                                    <h3>7.5 hrs</h3>
-                                </div>
-                                <div class="col-6">
-                                    <h5>Efficiency</h5>
-                                    <h3>98%</h3>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Learner Registration Section -->
-                    <div class="col-md-8">
-                        <div class="learner-form">
-                            <h3><i class="fas fa-graduation-cap me-2"></i>Register Learners Served</h3>
-                            <p class="text-muted mb-4">Record the learners who received meals today at Springfield Primary School.</p>
-                            
-                            <form id="learnerForm">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="learnerName" class="form-label">Learner Name</label>
-                                        <input type="text" class="form-control" id="learnerName" placeholder="Enter learner's full name">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label for="grade" class="form-label">Grade/Class</label>
-                                        <select class="form-control" id="grade">
-                                            <option value="">Select Grade</option>
-                                            <option value="Grade R">Grade R</option>
-                                            <option value="Grade 1">Grade 1</option>
-                                            <option value="Grade 2">Grade 2</option>
-                                            <option value="Grade 3">Grade 3</option>
-                                            <option value="Grade 4">Grade 4</option>
-                                            <option value="Grade 5">Grade 5</option>
-                                            <option value="Grade 6">Grade 6</option>
-                                            <option value="Grade 7">Grade 7</option>
-                                            <option value="Grade 7">Grade 8</option>
-                                            <option value="Grade 7">Grade 9</option>
-                                            <option value="Grade 7">Grade 10</option>
-                                            <option value="Grade 7">Grade 11</option>
-                                            <option value="Grade 7">Grade 12</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label for="mealType" class="form-label">Meal Type</label>
-                                        <select class="form-control" id="mealType">
-                                            <option value="Breakfast">Breakfast</option>
-                                            <option value="Lunch">Lunch</option>
-                                            <option value="Both">Both</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="notes" class="form-label">Notes (Optional)</label>
-                                    <textarea class="form-control" id="notes" rows="2" placeholder="Any additional notes about this learner"></textarea>
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <button type="button" class="btn btn-outline-secondary">
-                                        <i class="fas fa-plus me-1"></i> Add Multiple
-                                    </button>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save me-1"></i> Save Learner Record
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                        
-                        <!-- Recent Learners Table -->
-                        <div class="table-container">
-                            <h3><i class="fas fa-list me-2"></i>Today's Learners Served</h3>
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Learner Name</th>
-                                            <th>Grade</th>
-                                            <th>Meal Type</th>
-                                            <th>Time Served</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>James Wilson</td>
-                                            <td>Grade 3</td>
-                                            <td>Lunch</td>
-                                            <td>12:15 PM</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>Sarah Johnson</td>
-                                            <td>Grade 5</td>
-                                            <td>Lunch</td>
-                                            <td>12:20 PM</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>Michael Brown</td>
-                                            <td>Grade 2</td>
-                                            <td>Both</td>
-                                            <td>12:25 PM</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>Emily Davis</td>
-                                            <td>Grade 4</td>
-                                            <td>Lunch</td>
-                                            <td>12:30 PM</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>David Miller</td>
-                                            <td>Grade 1</td>
-                                            <td>Lunch</td>
-                                            <td>12:35 PM</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="text-muted">Showing 5 of 245 learners served today</div>
-                                <a href="#" class="btn btn-sm btn-outline-primary">View All Learners</a>
-                            </div>
-                        </div>
-                    </div>
+                <div class="col-6">
+                    <h5>Meals Prepared</h5>
+                    <h3 id="summaryMeals">245</h3>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-6">
+                    <h5>Work Hours</h5>
+                    <h3 id="summaryHours">7.5 hrs</h3>
+                </div>
+                <div class="col-6">
+                    <h5>Efficiency</h5>
+                    <h3 id="summaryEfficiency">98%</h3>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Learner Registration Section -->
+    <div class="col-md-8">
+        <div class="learner-form">
+            <h3><i class="fas fa-graduation-cap me-2"></i>Register Learners Served</h3>
+            <p class="text-muted mb-4">Record the learners who received meals today at <span id="formSchoolName">Springfield Primary</span> School.</p>
+            
+            <form id="learnerForm" method="POST" action="{{ url_for('add_learner') }}">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="learnerName" class="form-label">Learner Name *</label>
+                        <input type="text" class="form-control" id="learnerName" name="learner_name" placeholder="Enter learner's full name" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="grade" class="form-label">Grade/Class *</label>
+                        <select class="form-control" id="grade" name="grade" required>
+                            <option value="">Select Grade</option>
+                            <option value="Grade R">Grade R</option>
+                            <option value="Grade 1">Grade 1</option>
+                            <option value="Grade 2">Grade 2</option>
+                            <option value="Grade 3">Grade 3</option>
+                            <option value="Grade 4">Grade 4</option>
+                            <option value="Grade 5">Grade 5</option>
+                            <option value="Grade 6">Grade 6</option>
+                            <option value="Grade 7">Grade 7</option>
+                            <option value="Grade 8">Grade 8</option>
+                            <option value="Grade 9">Grade 9</option>
+                            <option value="Grade 10">Grade 10</option>
+                            <option value="Grade 11">Grade 11</option>
+                            <option value="Grade 12">Grade 12</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="mealType" class="form-label">Meal Type *</label>
+                        <select class="form-control" id="mealType" name="meal_type" required>
+                            <option value="Breakfast">Breakfast</option>
+                            <option value="Lunch">Lunch</option>
+                            <option value="Both">Both</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Notes (Optional)</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Any additional notes about this learner"></textarea>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" id="addMultipleBtn">
+                        <i class="fas fa-plus me-1"></i> Add Multiple
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Save Learner Record
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Recent Learners Table -->
+        <div class="table-container">
+            <h3><i class="fas fa-list me-2"></i>Today's Learners Served</h3>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Learner Name</th>
+                            <th>Grade</th>
+                            <th>Meal Type</th>
+                            <th>Time Served</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="learnersTableBody">
+                        <!-- Learners will be populated dynamically -->
+                        <tr>
+                            <td>James Wilson</td>
+                            <td>Grade 3</td>
+                            <td>Lunch</td>
+                            <td>12:15 PM</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Sarah Johnson</td>
+                            <td>Grade 5</td>
+                            <td>Lunch</td>
+                            <td>12:20 PM</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted" id="learnersCount">Showing 2 of 245 learners served today</div>
+                <a href="#" class="btn btn-sm btn-outline-primary">View All Learners</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Update current time
-        function updateTime() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString();
-            document.getElementById('currentTime').textContent = timeString;
+{% block extra_css %}
+<style>
+    /* Dashboard Cards */
+    .dashboard-card {
+        background-color: var(--white);
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: transform 0.3s;
+        border-top: 4px solid var(--primary-purple);
+    }
+    
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .dashboard-card .card-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: rgba(106, 13, 173, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+    
+    .dashboard-card .card-icon i {
+        font-size: 24px;
+        color: var(--primary-purple);
+    }
+    
+    .dashboard-card h3 {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 5px;
+        color: var(--primary-purple);
+    }
+    
+    .dashboard-card p {
+        color: var(--dark-gray);
+        margin: 0;
+    }
+    
+    /* Attendance Card */
+    .attendance-card {
+        background-color: var(--white);
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 25px;
+        margin-bottom: 20px;
+    }
+    
+    .attendance-card h3 {
+        color: var(--primary-purple);
+        margin-bottom: 20px;
+        font-weight: 700;
+    }
+    
+    .time-display {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-purple);
+        text-align: center;
+        margin: 15px 0;
+    }
+    
+    .attendance-btn {
+        padding: 12px 25px;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.3s;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .btn-clock-in {
+        background-color: var(--primary-purple);
+        color: white;
+    }
+    
+    .btn-clock-in:hover {
+        background-color: var(--dark-purple);
+    }
+    
+    .btn-clock-out {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .btn-clock-out:hover {
+        background-color: #c82333;
+    }
+    
+    .btn-clock-out:disabled {
+        background-color: var(--medium-gray);
+        color: var(--dark-gray);
+    }
+    
+    /* Learner Form */
+    .learner-form {
+        background-color: var(--white);
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 25px;
+        margin-bottom: 20px;
+    }
+    
+    .learner-form h3 {
+        color: var(--primary-purple);
+        margin-bottom: 20px;
+        font-weight: 700;
+    }
+    
+    .form-control {
+        border: 1px solid var(--medium-gray);
+        border-radius: 8px;
+        padding: 10px 15px;
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary-purple);
+        box-shadow: 0 0 0 0.2rem rgba(106, 13, 173, 0.25);
+    }
+    
+    /* Recent Learners Table */
+    .table-container {
+        background-color: var(--white);
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .table-container h3 {
+        color: var(--primary-purple);
+        margin-bottom: 20px;
+        font-weight: 700;
+    }
+    
+    .table th {
+        background-color: rgba(106, 13, 173, 0.1);
+        color: var(--primary-purple);
+        border-top: none;
+    }
+    
+    /* Status Indicators */
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .status-clocked-in {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+    
+    .status-clocked-out {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+    
+    /* Today's Summary */
+    .summary-card {
+        background-color: var(--white);
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid var(--primary-purple);
+    }
+    
+    .summary-card h5 {
+        color: var(--dark-gray);
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+    
+    .summary-card h3 {
+        color: var(--primary-purple);
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Update current time
+    function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        document.getElementById('currentTime').textContent = timeString;
+        
+        // Update date in alert
+        const dateString = now.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        document.getElementById('currentDate').textContent = dateString;
+        document.getElementById('todayDate').textContent = dateString;
+    }
+    
+    // Update time every second
+    setInterval(updateTime, 1000);
+    updateTime(); // Initial call
+    
+    // Clock In/Out functionality
+    document.getElementById('clockInBtn').addEventListener('click', function() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        document.getElementById('timeInDisplay').textContent = timeString;
+        document.getElementById('timeOutDisplay').textContent = '--:--';
+        
+        // Update status badge
+        const statusBadge = document.getElementById('statusBadge');
+        statusBadge.className = 'status-badge status-clocked-in';
+        statusBadge.textContent = 'Clocked In';
+        
+        // Enable clock out button
+        document.getElementById('clockOutBtn').disabled = false;
+        this.disabled = true;
+        
+        // Show success message
+        alert('Successfully clocked in at ' + timeString);
+    });
+    
+    document.getElementById('clockOutBtn').addEventListener('click', function() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        document.getElementById('timeOutDisplay').textContent = timeString;
+        
+        // Update status badge
+        const statusBadge = document.getElementById('statusBadge');
+        statusBadge.className = 'status-badge status-clocked-out';
+        statusBadge.textContent = 'Clocked Out';
+        
+        // Enable clock in button
+        document.getElementById('clockInBtn').disabled = false;
+        this.disabled = true;
+        
+        // Show success message
+        alert('Successfully clocked out at ' + timeString);
+    });
+    
+    // Form submission
+    document.getElementById('learnerForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const learnerName = document.getElementById('learnerName').value;
+        const grade = document.getElementById('grade').value;
+        
+        if (!learnerName || !grade) {
+            alert('Please fill in all required fields');
+            return;
         }
         
-        // Update time every second
-        setInterval(updateTime, 1000);
-        updateTime(); // Initial call
+        // In a real application, you would send this data to the server
+        alert('Learner record saved successfully!');
         
-        // Clock In/Out functionality
-        document.getElementById('clockInBtn').addEventListener('click', function() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            document.getElementById('timeInDisplay').textContent = timeString;
-            document.getElementById('timeOutDisplay').textContent = '--:--';
-            
-            // Update status badge
-            const statusBadge = document.querySelector('.status-badge');
-            statusBadge.className = 'status-badge status-clocked-in';
-            statusBadge.textContent = 'Clocked In';
-            
-            // Enable clock out button
-            document.getElementById('clockOutBtn').disabled = false;
-            this.disabled = true;
-            
-            // Show success message
-            alert('Successfully clocked in at ' + timeString);
-        });
-        
-        document.getElementById('clockOutBtn').addEventListener('click', function() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            document.getElementById('timeOutDisplay').textContent = timeString;
-            
-            // Update status badge
-            const statusBadge = document.querySelector('.status-badge');
-            statusBadge.className = 'status-badge status-clocked-out';
-            statusBadge.textContent = 'Clocked Out';
-            
-            // Enable clock in button
-            document.getElementById('clockInBtn').disabled = false;
-            this.disabled = true;
-            
-            // Show success message
-            alert('Successfully clocked out at ' + timeString);
-        });
-        
-        // Form submission
-        document.getElementById('learnerForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const learnerName = document.getElementById('learnerName').value;
-            const grade = document.getElementById('grade').value;
-            
-            if (!learnerName || !grade) {
-                alert('Please fill in all required fields');
-                return;
-            }
-            
-            // In a real application, you would send this data to the server
-            alert('Learner record saved successfully!');
-            
-            // Reset form
-            this.reset();
-        });
-    </script>
-</body>
-</html>
+        // Reset form
+        this.reset();
+    });
+    
+    // Add Multiple functionality
+    document.getElementById('addMultipleBtn').addEventListener('click', function() {
+        alert('Multiple learner addition feature would open here in a real application.');
+    });
+</script>
+{% endblock %}

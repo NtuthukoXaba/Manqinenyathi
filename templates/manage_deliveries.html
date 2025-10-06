@@ -1,0 +1,149 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Manage Deliveries | Manqinenyathi Food Supply{% endblock %}
+
+{% block page_title %}Manage Deliveries{% endblock %}
+
+{% block content %}
+<!-- Deliveries Table -->
+<div class="content-card">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0"><i class="fas fa-truck me-2"></i>All Deliveries</h3>
+        <a href="{{ url_for('assign_delivery') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Assign New Delivery
+        </a>
+    </div>
+    
+    {% if deliveries %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>School</th>
+                    <th>Delivery Guy</th>
+                    <th>Delivery Date</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Delivered Time</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for delivery in deliveries %}
+                <tr>
+                    <td>{{ delivery.school.school_name }}</td>
+                    <td>{{ delivery.delivery_guy.full_name }}</td>
+                    <td>{{ delivery.delivery_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ delivery.location }}</td>
+                    <td>
+                        <span class="badge {% if delivery.status == 'Delivered' %}bg-success{% else %}bg-warning{% endif %}">
+                            {{ delivery.status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if delivery.delivered_time %}
+                            {{ delivery.delivered_time.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{{ url_for('edit_delivery', delivery_id=delivery.delivery_id) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            {% if delivery.status == 'Pending' %}
+                            <form action="{{ url_for('mark_delivery_delivered', delivery_id=delivery.delivery_id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-outline-success btn-sm" onclick="return confirm('Mark this delivery as delivered?')">
+                                    <i class="fas fa-check"></i> Mark Delivered
+                                </button>
+                            </form>
+                            {% endif %}
+                            <form action="{{ url_for('delete_delivery', delivery_id=delivery.delivery_id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete this delivery assignment?')">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-truck"></i>
+        <h4>No Deliveries Found</h4>
+        <p>You haven't assigned any deliveries yet. Get started by assigning your first delivery.</p>
+        <a href="{{ url_for('assign_delivery') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Assign First Delivery
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick Stats -->
+<div class="row">
+    <div class="col-md-3">
+        <div class="content-card text-center">
+            <h3>{{ deliveries|length }}</h3>
+            <p class="text-muted">Total Deliveries</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="content-card text-center">
+            <h3>{{ deliveries|selectattr('status', 'equalto', 'Pending')|list|length }}</h3>
+            <p class="text-muted">Pending Deliveries</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="content-card text-center">
+            <h3>{{ deliveries|selectattr('status', 'equalto', 'Delivered')|list|length }}</h3>
+            <p class="text-muted">Completed Deliveries</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="content-card text-center">
+            <h3>{{ (deliveries|selectattr('status', 'equalto', 'Delivered')|list|length / deliveries|length * 100)|round|int if deliveries|length > 0 else 0 }}%</h3>
+            <p class="text-muted">Completion Rate</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+    
+    .btn-sm {
+        padding: 5px 8px;
+        font-size: 12px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--dark-gray);
+    }
+    
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 15px;
+        color: var(--medium-gray);
+    }
+    
+    .badge {
+        font-size: 0.75em;
+        padding: 0.35em 0.65em;
+    }
+    
+    .table td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}

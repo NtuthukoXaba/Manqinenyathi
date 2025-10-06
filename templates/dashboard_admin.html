@@ -1,522 +1,327 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard | Manqinenyathi Food Supply</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-purple: #6a0dad;
-            --light-purple: #8a2be2;
-            --dark-purple: #4b0082;
-            --accent-purple: #9370db;
-            --white: #ffffff;
-            --light-gray: #f8f9fa;
-            --medium-gray: #e9ecef;
-            --dark-gray: #6c757d;
-            --text-dark: #343a40;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--light-gray);
-            color: var(--text-dark);
-        }
-        
-        /* Sidebar Styles */
-        .sidebar {
-            background: linear-gradient(180deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
-            color: var(--white);
-            height: 100vh;
-            position: fixed;
-            padding-top: 20px;
-            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        }
-        
-        .sidebar .logo {
-            padding: 0 20px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            margin-bottom: 20px;
-        }
-        
-        .sidebar .logo h3 {
-            font-weight: 700;
-            margin: 0;
-        }
-        
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 12px 20px;
-            margin: 5px 0;
-            border-radius: 5px;
-            transition: all 0.3s;
-        }
-        
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
-            color: var(--white);
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        
-        .sidebar .nav-link i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
-        }
-        
-        /* Main Content Styles */
-        .main-content {
-            margin-left: 250px;
-            padding: 20px;
-        }
-        
-        .header {
-            background-color: var(--white);
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .header h1 {
-            color: var(--primary-purple);
-            font-weight: 700;
-            margin: 0;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-        }
-        
-        .user-info img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: 10px;
-            border: 2px solid var(--primary-purple);
-        }
-        
-        /* Dashboard Cards */
-        .dashboard-card {
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-            margin-bottom: 20px;
-            transition: transform 0.3s;
-            border-top: 4px solid var(--primary-purple);
-        }
-        
-        .dashboard-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .dashboard-card .card-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background-color: rgba(106, 13, 173, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        
-        .dashboard-card .card-icon i {
-            font-size: 24px;
-            color: var(--primary-purple);
-        }
-        
-        .dashboard-card h3 {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 5px;
-            color: var(--primary-purple);
-        }
-        
-        .dashboard-card p {
-            color: var(--dark-gray);
-            margin: 0;
-        }
-        
-        /* Stats Cards */
-        .stats-card {
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--primary-purple);
-        }
-        
-        .stats-card h5 {
-            color: var(--dark-gray);
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-        
-        .stats-card h3 {
-            color: var(--primary-purple);
-            font-weight: 700;
-            margin-bottom: 0;
-        }
-        
-        .stats-card .trend {
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .stats-card .trend.up {
-            color: #28a745;
-        }
-        
-        .stats-card .trend.down {
-            color: #dc3545;
-        }
-        
-        /* Table Styles */
-        .table-container {
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .table-container h3 {
-            color: var(--primary-purple);
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        
-        .table th {
-            background-color: rgba(106, 13, 173, 0.1);
-            color: var(--primary-purple);
-            border-top: none;
-        }
-        
-        .badge-delivered {
-            background-color: #28a745;
-        }
-        
-        .badge-pending {
-            background-color: #ffc107;
-            color: #212529;
-        }
-        
-        .badge-absent {
-            background-color: #dc3545;
-        }
-        
-        /* Chart Container */
-        .chart-container {
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .chart-container h3 {
-            color: var(--primary-purple);
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-        
-        /* Quick Actions */
-        .quick-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .quick-action-btn {
-            background-color: var(--primary-purple);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 8px 15px;
-            font-size: 14px;
-            transition: background-color 0.3s;
-        }
-        
-        .quick-action-btn:hover {
-            background-color: var(--dark-purple);
-        }
-    </style>
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-2 sidebar d-none d-md-block">
-                <div class="logo">
-                    <h3><i class="fas fa-utensils me-2"></i>Manqinenyathi</h3>
-                    <p class="text-muted small">Food Supply System</p>
-                </div>
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-school"></i> Manage Schools</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-users"></i> Manage Workers</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-truck"></i> Assign Deliveries</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-clipboard-list"></i> View Reports</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-user-clock"></i> Attendance</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-graduation-cap"></i> Learner Records</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-cog"></i> Settings</a>
-                    </li>
-                    <li class="nav-item mt-4">
-                        <a class="nav-link" href="#"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                    </li>
-                </ul>
+{% extends "admin_base.html" %}
+
+{% block title %}Admin Dashboard | Manqinenyathi Food Supply{% endblock %}
+
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<!-- Dashboard Stats -->
+<div class="row">
+    <div class="col-md-3">
+        <div class="dashboard-card">
+            <div class="card-icon">
+                <i class="fas fa-school"></i>
             </div>
-            
-            <!-- Main Content -->
-            <div class="col-md-10 main-content">
-                <!-- Header -->
-                <div class="header">
-                    <h1><i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard</h1>
-                    <div class="user-info">
-                        <img src="https://ui-avatars.com/api/?name=Admin+User&background=6a0dad&color=fff" alt="Admin User">
-                        <div>
-                            <h6 class="mb-0">Admin User</h6>
-                            <small class="text-muted">Administrator</small>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Dashboard Stats -->
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="dashboard-card">
-                            <div class="card-icon">
-                                <i class="fas fa-school"></i>
-                            </div>
-                            <h3>24</h3>
-                            <p>Schools Managed</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="dashboard-card">
-                            <div class="card-icon">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <h3>48</h3>
-                            <p>Total Workers</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="dashboard-card">
-                            <div class="card-icon">
-                                <i class="fas fa-utensils"></i>
-                            </div>
-                            <h3>1,250</h3>
-                            <p>Learners Fed Today</p>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="dashboard-card">
-                            <div class="card-icon">
-                                <i class="fas fa-truck"></i>
-                            </div>
-                            <h3>18/24</h3>
-                            <p>Deliveries Completed</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Second Row Stats -->
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="stats-card">
-                            <h5>Cookers Clocked In</h5>
-                            <h3>22/24</h3>
-                            <div class="trend up">
-                                <i class="fas fa-arrow-up me-1"></i> 2 more than yesterday
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stats-card">
-                            <h5>Pending Deliveries</h5>
-                            <h3>6</h3>
-                            <div class="trend down">
-                                <i class="fas fa-arrow-down me-1"></i> 3 less than yesterday
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stats-card">
-                            <h5>Monthly Learners</h5>
-                            <h3>24,580</h3>
-                            <div class="trend up">
-                                <i class="fas fa-arrow-up me-1"></i> 5% increase
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stats-card">
-                            <h5>Active Delivery Guys</h5>
-                            <h3>12</h3>
-                            <div class="trend up">
-                                <i class="fas fa-arrow-up me-1"></i> All present today
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Charts and Tables Row -->
-                <div class="row">
-                    <!-- Recent Deliveries -->
-                    <div class="col-md-6">
-                        <div class="table-container">
-                            <h3><i class="fas fa-truck me-2"></i>Recent Deliveries</h3>
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>School</th>
-                                            <th>Delivery Guy</th>
-                                            <th>Date</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>Springfield Primary</td>
-                                            <td>John Doe</td>
-                                            <td>2023-05-15</td>
-                                            <td><span class="badge badge-delivered">Delivered</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Westside High</td>
-                                            <td>Mike Johnson</td>
-                                            <td>2023-05-15</td>
-                                            <td><span class="badge badge-delivered">Delivered</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Northwood Elementary</td>
-                                            <td>Sarah Williams</td>
-                                            <td>2023-05-15</td>
-                                            <td><span class="badge badge-pending">Pending</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Riverside Academy</td>
-                                            <td>David Brown</td>
-                                            <td>2023-05-15</td>
-                                            <td><span class="badge badge-delivered">Delivered</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Hillside School</td>
-                                            <td>James Wilson</td>
-                                            <td>2023-05-15</td>
-                                            <td><span class="badge badge-pending">Pending</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="text-end">
-                                <a href="#" class="btn btn-sm btn-outline-primary">View All Deliveries</a>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Cooker Attendance -->
-                    <div class="col-md-6">
-                        <div class="table-container">
-                            <h3><i class="fas fa-user-clock me-2"></i>Today's Cooker Attendance</h3>
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Cooker Name</th>
-                                            <th>School</th>
-                                            <th>Time In</th>
-                                            <th>Time Out</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>Mary Johnson</td>
-                                            <td>Springfield Primary</td>
-                                            <td>07:15 AM</td>
-                                            <td>02:30 PM</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Susan Davis</td>
-                                            <td>Westside High</td>
-                                            <td>07:05 AM</td>
-                                            <td>02:45 PM</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Lisa Anderson</td>
-                                            <td>Northwood Elementary</td>
-                                            <td>07:20 AM</td>
-                                            <td>-</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Patricia Miller</td>
-                                            <td>Riverside Academy</td>
-                                            <td>07:10 AM</td>
-                                            <td>02:35 PM</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Jennifer Taylor</td>
-                                            <td>Hillside School</td>
-                                            <td>-</td>
-                                            <td>-</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="text-end">
-                                <a href="#" class="btn btn-sm btn-outline-primary">View Full Attendance</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Quick Actions -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="table-container">
-                            <h3><i class="fas fa-bolt me-2"></i>Quick Actions</h3>
-                            <div class="quick-actions">
-                                <button class="quick-action-btn"><i class="fas fa-plus me-1"></i> Add New School</button>
-                                <button class="quick-action-btn"><i class="fas fa-user-plus me-1"></i> Add Worker</button>
-                                <button class="quick-action-btn"><i class="fas fa-truck me-1"></i> Assign Delivery</button>
-                                <button class="quick-action-btn"><i class="fas fa-file-export me-1"></i> Export Reports</button>
-                                <button class="quick-action-btn"><i class="fas fa-bell me-1"></i> Send Notifications</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <h3>{{ total_schools }}</h3>
+            <p>Schools Managed</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="dashboard-card">
+            <div class="card-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3>{{ total_workers }}</h3>
+            <p>Total Workers</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="dashboard-card">
+            <div class="card-icon">
+                <i class="fas fa-utensils"></i>
+            </div>
+            <h3>1,250</h3>
+            <p>Learners Fed Today</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="dashboard-card">
+            <div class="card-icon">
+                <i class="fas fa-truck"></i>
+            </div>
+            <h3>18/24</h3>
+            <p>Deliveries Completed</p>
+        </div>
+    </div>
+</div>
+
+<!-- Second Row Stats -->
+<div class="row">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h5>Cookers Clocked In</h5>
+            <h3>22/24</h3>
+            <div class="trend up">
+                <i class="fas fa-arrow-up me-1"></i> 2 more than yesterday
             </div>
         </div>
     </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h5>Pending Deliveries</h5>
+            <h3>6</h3>
+            <div class="trend down">
+                <i class="fas fa-arrow-down me-1"></i> 3 less than yesterday
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h5>Monthly Learners</h5>
+            <h3>24,580</h3>
+            <div class="trend up">
+                <i class="fas fa-arrow-up me-1"></i> 5% increase
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <h5>Active Delivery Guys</h5>
+            <h3>12</h3>
+            <div class="trend up">
+                <i class="fas fa-arrow-up me-1"></i> All present today
+            </div>
+        </div>
+    </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<!-- Charts and Tables Row -->
+<div class="row">
+    <!-- Recent Deliveries -->
+    <div class="col-md-6">
+        <div class="table-container">
+            <h3><i class="fas fa-truck me-2"></i>Recent Deliveries</h3>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>School</th>
+                            <th>Delivery Guy</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for delivery in recent_deliveries %}
+                        <tr>
+                            <td>{{ delivery.school.school_name }}</td>
+                            <td>{{ delivery.delivery_guy.full_name }}</td>
+                            <td>{{ delivery.delivery_date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <span class="badge {% if delivery.status == 'Delivered' %}bg-success{% else %}bg-warning{% endif %}">
+                                    {{ delivery.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-end">
+                <a href="#" class="btn btn-sm btn-outline-primary">View All Deliveries</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cooker Attendance -->
+    <div class="col-md-6">
+        <div class="table-container">
+            <h3><i class="fas fa-user-clock me-2"></i>Today's Cooker Attendance</h3>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Cooker Name</th>
+                            <th>School</th>
+                            <th>Time In</th>
+                            <th>Time Out</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Mary Johnson</td>
+                            <td>Springfield Primary</td>
+                            <td>07:15 AM</td>
+                            <td>02:30 PM</td>
+                        </tr>
+                        <tr>
+                            <td>Susan Davis</td>
+                            <td>Westside High</td>
+                            <td>07:05 AM</td>
+                            <td>02:45 PM</td>
+                        </tr>
+                        <tr>
+                            <td>Lisa Anderson</td>
+                            <td>Northwood Elementary</td>
+                            <td>07:20 AM</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>Patricia Miller</td>
+                            <td>Riverside Academy</td>
+                            <td>07:10 AM</td>
+                            <td>02:35 PM</td>
+                        </tr>
+                        <tr>
+                            <td>Jennifer Taylor</td>
+                            <td>Hillside School</td>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-end">
+                <a href="#" class="btn btn-sm btn-outline-primary">View Full Attendance</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="table-container">
+            <h3><i class="fas fa-bolt me-2"></i>Quick Actions</h3>
+            <div class="quick-actions">
+                <a href="{{ url_for('add_school') }}" class="quick-action-btn">
+                    <i class="fas fa-plus me-1"></i> Add New School
+                </a>
+                <button class="quick-action-btn"><i class="fas fa-user-plus me-1"></i> Add Worker</button>
+                <button class="quick-action-btn"><i class="fas fa-truck me-1"></i> Assign Delivery</button>
+                <button class="quick-action-btn"><i class="fas fa-file-export me-1"></i> Export Reports</button>
+                <button class="quick-action-btn"><i class="fas fa-bell me-1"></i> Send Notifications</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Dashboard Cards */
+    .dashboard-card {
+        background-color: var(--white);
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: transform 0.3s;
+        border-top: 4px solid var(--primary-purple);
+    }
+    
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .dashboard-card .card-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: rgba(106, 13, 173, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+    
+    .dashboard-card .card-icon i {
+        font-size: 24px;
+        color: var(--primary-purple);
+    }
+    
+    .dashboard-card h3 {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 5px;
+        color: var(--primary-purple);
+    }
+    
+    .dashboard-card p {
+        color: var(--dark-gray);
+        margin: 0;
+    }
+    
+    /* Stats Cards */
+    .stats-card {
+        background-color: var(--white);
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid var(--primary-purple);
+    }
+    
+    .stats-card h5 {
+        color: var(--dark-gray);
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+    
+    .stats-card h3 {
+        color: var(--primary-purple);
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+    
+    .stats-card .trend {
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .stats-card .trend.up {
+        color: #28a745;
+    }
+    
+    .stats-card .trend.down {
+        color: #dc3545;
+    }
+    
+    /* Table Styles */
+    .table-container {
+        background-color: var(--white);
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .table-container h3 {
+        color: var(--primary-purple);
+        margin-bottom: 20px;
+        font-weight: 700;
+    }
+    
+    .table th {
+        background-color: rgba(106, 13, 173, 0.1);
+        color: var(--primary-purple);
+        border-top: none;
+    }
+    
+    /* Quick Actions */
+    .quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    
+    .quick-action-btn {
+        background-color: var(--primary-purple);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 8px 15px;
+        font-size: 14px;
+        transition: background-color 0.3s;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .quick-action-btn:hover {
+        background-color: var(--dark-purple);
+        color: white;
+    }
+</style>
+{% endblock %}
