@@ -190,10 +190,11 @@
                          </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="fas fa-clipboard-list"></i> View Reports
-                        </a>
-                    </li>
+                    <a class="nav-link {% if request.endpoint == 'admin_reports' %}active{% endif %}" 
+                         href="{{ url_for('admin_reports') }}">
+                                 <i class="fas fa-clipboard-list"></i> View Reports
+                                 </a>
+                            </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'admin_attendance' %}active{% endif %}" 
                           href="{{ url_for('admin_attendance') }}">
@@ -201,15 +202,12 @@
                             </a>
                         </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="fas fa-graduation-cap"></i> Learner Records
+                <a class="nav-link {% if request.endpoint == 'admin_learner_records' %}active{% endif %}" 
+                    href="{{ url_for('admin_learner_records') }}">
+                     <i class="fas fa-graduation-cap"></i> Learner Records
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="fas fa-cog"></i> Settings
-                        </a>
-                    </li>
+                    
                     <li class="nav-item mt-4">
                         <a class="nav-link" href="{{ url_for('logout') }}">
                             <i class="fas fa-sign-out-alt"></i> Logout

@@ -1,0 +1,273 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Delivery Reports | Manqinenyathi Food Supply{% endblock %}
+
+{% block page_title %}Delivery Reports & Analytics{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="content-card text-center">
+                    <h3 class="text-purple">{{ total_deliveries }}</h3>
+                    <p class="mb-0">Total Deliveries</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="content-card text-center">
+                    <h3 class="text-warning">{{ pending_deliveries }}</h3>
+                    <p class="mb-0">Pending</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="content-card text-center">
+                    <h3 class="text-success">{{ delivered_deliveries }}</h3>
+                    <p class="mb-0">Delivered</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="content-card text-center">
+                    <h3 class="text-info">{{ on_time_rate }}%</h3>
+                    <p class="mb-0">On-Time Rate</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="content-card mb-4">
+            <h5><i class="fas fa-filter me-2"></i>Filter Reports</h5>
+            <form method="get" class="row g-3">
+                <div class="col-md-2">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All Status</option>
+                        <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+                        <option value="Delivered" {% if status_filter == 'Delivered' %}selected{% endif %}>Delivered</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="school" class="form-label">School</label>
+                    <select class="form-select" id="school" name="school">
+                        <option value="">All Schools</option>
+                        {% for school in all_schools %}
+                        <option value="{{ school.school_id }}" {% if school_filter|string == school.school_id|string %}selected{% endif %}>
+                            {{ school.school_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="delivery_guy" class="form-label">Delivery Person</label>
+                    <select class="form-select" id="delivery_guy" name="delivery_guy">
+                        <option value="">All Delivery Persons</option>
+                        {% for delivery_guy in all_delivery_guys %}
+                        <option value="{{ delivery_guy.user_id }}" {% if delivery_guy_filter|string == delivery_guy.user_id|string %}selected{% endif %}>
+                            {{ delivery_guy.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-search me-1"></i> Apply Filters
+                    </button>
+                    <a href="{{ url_for('admin_reports') }}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-times me-1"></i> Clear Filters
+                    </a>
+                    <a href="{{ url_for('export_delivery_excel', start_date=start_date, end_date=end_date, status=status_filter, school=school_filter, delivery_guy=delivery_guy_filter) }}" 
+                       class="btn btn-success">
+                        <i class="fas fa-file-excel me-1"></i> Export to Excel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Delivery Reports Table -->
+        <div class="content-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5><i class="fas fa-truck me-2"></i>Delivery Records</h5>
+                <div class="text-muted">
+                    Showing {{ delivery_records|length }} records
+                </div>
+            </div>
+
+            {% if delivery_records %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="deliveryTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Delivery ID</th>
+                            <th>School</th>
+                            <th>Delivery Date</th>
+                            <th>Delivery Person</th>
+                            <th>Status</th>
+                            <th>Delivered Time</th>
+                            <th>Remarks</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for delivery, school, delivery_guy in delivery_records %}
+                        <tr>
+                            <td>
+                                <strong>#{{ delivery.delivery_id }}</strong>
+                            </td>
+                            <td>
+                                <div>
+                                    <strong>{{ school.school_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ school.location }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                {{ delivery.delivery_date.strftime('%Y-%m-%d') }}
+                                {% if delivery.delivered_time and delivery.delivered_time.date() > delivery.delivery_date %}
+                                <span class="badge bg-warning ms-1" title="Delayed">Delayed</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="https://ui-avatars.com/api/?name={{ delivery_guy.full_name }}&background=6a0dad&color=fff" 
+                                         alt="{{ delivery_guy.full_name }}" class="rounded-circle me-2" width="30" height="30">
+                                    {{ delivery_guy.full_name }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if delivery.status == 'Delivered' %}
+                                <span class="badge bg-success">{{ delivery.status }}</span>
+                                {% else %}
+                                <span class="badge bg-warning">{{ delivery.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.delivered_time %}
+                                {{ delivery.delivered_time.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if delivery.remarks %}
+                                <span class="text-truncate" style="max-width: 150px;" 
+                                      title="{{ delivery.remarks }}">
+                                    {{ delivery.remarks }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">No remarks</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('edit_delivery', delivery_id=delivery.delivery_id) }}" 
+                                       class="btn btn-outline-primary" title="Edit Delivery">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if delivery.status == 'Pending' %}
+                                    <form method="post" action="{{ url_for('mark_delivery_delivered', delivery_id=delivery.delivery_id) }}" 
+                                          class="d-inline" onsubmit="return confirm('Mark this delivery as delivered?');">
+                                        <button type="submit" class="btn btn-outline-success" title="Mark as Delivered">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="mt-4 p-3 bg-light rounded">
+                <h6><i class="fas fa-chart-bar me-2"></i>Report Summary</h6>
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Date Range:</strong> 
+                        {% if start_date and end_date %}
+                        {{ start_date }} to {{ end_date }}
+                        {% else %}
+                        All dates
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Total Records:</strong> {{ total_deliveries }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Completion Rate:</strong> 
+                        {% if total_deliveries > 0 %}
+                        {{ ((delivered_deliveries / total_deliveries) * 100)|round(1) }}%
+                        {% else %}
+                        0%
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-truck fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No delivery records found</h5>
+                <p class="text-muted">Try adjusting your filters or check back later for new records.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-submit form when date is selected for quick filtering
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInputs = ['start_date', 'end_date'];
+    dateInputs.forEach(function(id) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', function() {
+                // Only auto-submit if both dates are filled
+                const startDate = document.getElementById('start_date').value;
+                const endDate = document.getElementById('end_date').value;
+                if (startDate && endDate) {
+                    this.form.submit();
+                }
+            });
+        }
+    });
+
+    // Add confirmation for Excel export with large datasets
+    const exportBtn = document.querySelector('a[href*="export-excel"]');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function(e) {
+            const recordCount = {{ delivery_records|length }};
+            if (recordCount > 1000) {
+                if (!confirm(`You are about to export ${recordCount} records. This might take a moment. Continue?`)) {
+                    e.preventDefault();
+                }
+            }
+        });
+    }
+});
+
+// Quick filter buttons
+function applyQuickFilter(days) {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    document.getElementById('start_date').value = startDate.toISOString().split('T')[0];
+    document.getElementById('end_date').value = endDate.toISOString().split('T')[0];
+    document.querySelector('form').submit();
+}
+</script>
+{% endblock %}

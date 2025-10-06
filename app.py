@@ -3,6 +3,9 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
+import pandas as pd
+from io import BytesIO
+from flask import send_file
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
@@ -967,6 +970,234 @@ def api_complete_delivery():
             return jsonify({'success': False, 'message': str(e)})
     
     return jsonify({'success': False, 'message': 'Delivery not found'})
+
+@app.route('/admin/learner-records')
+def admin_learner_records():
+    if session.get('role') != 'admin':
+        return redirect(url_for('home'))
+    
+    # Get filter parameters from request
+    date_filter = request.args.get('date', '')
+    school_filter = request.args.get('school', '')
+    cooker_filter = request.args.get('cooker', '')
+    
+    # Base query with joins to get learner, cooker, and school information
+    query = db.session.query(Learner, User, School)\
+        .join(User, Learner.cooker_id == User.user_id)\
+        .join(School, Learner.school_id == School.school_id)
+    
+    # Apply filters
+    if date_filter:
+        try:
+            filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            query = query.filter(Learner.date_served == filter_date)
+        except ValueError:
+            flash('Invalid date format', 'error')
+    
+    if school_filter:
+        query = query.filter(Learner.school_id == school_filter)
+    
+    if cooker_filter:
+        query = query.filter(Learner.cooker_id == cooker_filter)
+    
+    # Get filtered results ordered by date
+    learner_records = query.order_by(Learner.date_served.desc(), Learner.created_at.desc()).all()
+    
+    # Get all schools and cookers for filter dropdowns
+    all_schools = School.query.order_by(School.school_name).all()
+    all_cookers = User.query.filter_by(role='cooker').order_by(User.full_name).all()
+    
+    # Calculate statistics
+    total_learners = len(learner_records)
+    
+    # Count by meal type for current results
+    meal_type_counts = {}
+    for learner, cooker, school in learner_records:
+        meal_type = learner.meal_type
+        meal_type_counts[meal_type] = meal_type_counts.get(meal_type, 0) + 1
+    
+    return render_template('admin_learner_records.html',
+                         learner_records=learner_records,
+                         total_learners=total_learners,
+                         meal_type_counts=meal_type_counts,
+                         all_schools=all_schools,
+                         all_cookers=all_cookers,
+                         date_filter=date_filter,
+                         school_filter=school_filter,
+                         cooker_filter=cooker_filter)
+
+@app.route('/admin/reports')
+def admin_reports():
+    if session.get('role') != 'admin':
+        return redirect(url_for('home'))
+    
+    # Get filter parameters from request
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    status_filter = request.args.get('status', '')
+    school_filter = request.args.get('school', '')
+    delivery_guy_filter = request.args.get('delivery_guy', '')
+    
+    # Base query with joins
+    query = db.session.query(Delivery, School, User)\
+        .join(School, Delivery.school_id == School.school_id)\
+        .join(User, Delivery.delivery_guy_id == User.user_id)
+    
+    # Apply filters
+    if start_date:
+        try:
+            start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+            query = query.filter(Delivery.delivery_date >= start_date_obj)
+        except ValueError:
+            flash('Invalid start date format', 'error')
+    
+    if end_date:
+        try:
+            end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+            query = query.filter(Delivery.delivery_date <= end_date_obj)
+        except ValueError:
+            flash('Invalid end date format', 'error')
+    
+    if status_filter:
+        query = query.filter(Delivery.status == status_filter)
+    
+    if school_filter:
+        query = query.filter(Delivery.school_id == school_filter)
+    
+    if delivery_guy_filter:
+        query = query.filter(Delivery.delivery_guy_id == delivery_guy_filter)
+    
+    # Get filtered results
+    delivery_records = query.order_by(Delivery.delivery_date.desc(), Delivery.created_at.desc()).all()
+    
+    # Get all schools and delivery guys for filter dropdowns
+    all_schools = School.query.order_by(School.school_name).all()
+    all_delivery_guys = User.query.filter_by(role='delivery').order_by(User.full_name).all()
+    
+    # Calculate statistics
+    total_deliveries = len(delivery_records)
+    pending_deliveries = len([d for d, s, u in delivery_records if d.status == 'Pending'])
+    delivered_deliveries = len([d for d, s, u in delivery_records if d.status == 'Delivered'])
+    
+    # Calculate on-time delivery rate (delivered on or before delivery date)
+    on_time_deliveries = 0
+    for delivery, school, delivery_guy in delivery_records:
+        if delivery.status == 'Delivered' and delivery.delivered_time:
+            if delivery.delivered_time.date() <= delivery.delivery_date:
+                on_time_deliveries += 1
+    
+    on_time_rate = round((on_time_deliveries / delivered_deliveries * 100), 1) if delivered_deliveries > 0 else 0
+    
+    return render_template('admin_reports.html',
+                         delivery_records=delivery_records,
+                         total_deliveries=total_deliveries,
+                         pending_deliveries=pending_deliveries,
+                         delivered_deliveries=delivered_deliveries,
+                         on_time_rate=on_time_rate,
+                         all_schools=all_schools,
+                         all_delivery_guys=all_delivery_guys,
+                         start_date=start_date,
+                         end_date=end_date,
+                         status_filter=status_filter,
+                         school_filter=school_filter,
+                         delivery_guy_filter=delivery_guy_filter)
+
+@app.route('/admin/reports/export-excel')
+def export_delivery_excel():
+    if session.get('role') != 'admin':
+        return redirect(url_for('home'))
+    
+    # Get the same filters as the reports page
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    status_filter = request.args.get('status', '')
+    school_filter = request.args.get('school', '')
+    delivery_guy_filter = request.args.get('delivery_guy', '')
+    
+    # Base query with joins (same as reports page)
+    query = db.session.query(Delivery, School, User)\
+        .join(School, Delivery.school_id == School.school_id)\
+        .join(User, Delivery.delivery_guy_id == User.user_id)
+    
+    # Apply filters (same as reports page)
+    if start_date:
+        try:
+            start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+            query = query.filter(Delivery.delivery_date >= start_date_obj)
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+            query = query.filter(Delivery.delivery_date <= end_date_obj)
+        except ValueError:
+            pass
+    
+    if status_filter:
+        query = query.filter(Delivery.status == status_filter)
+    
+    if school_filter:
+        query = query.filter(Delivery.school_id == school_filter)
+    
+    if delivery_guy_filter:
+        query = query.filter(Delivery.delivery_guy_id == delivery_guy_filter)
+    
+    # Get filtered results
+    delivery_records = query.order_by(Delivery.delivery_date.desc(), Delivery.created_at.desc()).all()
+    
+    # Prepare data for Excel
+    data = []
+    for delivery, school, delivery_guy in delivery_records:
+        data.append({
+            'Delivery ID': delivery.delivery_id,
+            'School Name': school.school_name,
+            'School Location': school.location,
+            'Contact Person': school.contact_person,
+            'Contact Number': school.contact_number,
+            'Delivery Date': delivery.delivery_date.strftime('%Y-%m-%d'),
+            'Delivery Address': delivery.location,
+            'Delivery Guy': delivery_guy.full_name,
+            'Status': delivery.status,
+            'Delivered Time': delivery.delivered_time.strftime('%Y-%m-%d %H:%M') if delivery.delivered_time else 'N/A',
+            'Remarks': delivery.remarks or 'N/A',
+            'Created At': delivery.created_at.strftime('%Y-%m-%d %H:%M')
+        })
+    
+    # Create DataFrame
+    df = pd.DataFrame(data)
+    
+    # Create Excel file in memory
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Delivery Reports', index=False)
+        
+        # Auto-adjust column widths
+        worksheet = writer.sheets['Delivery Reports']
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+    
+    output.seek(0)
+    
+    # Create filename with timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'delivery_reports_{timestamp}.xlsx'
+    
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
 
 @app.route('/debug/users')
 def debug_users():
