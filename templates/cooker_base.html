@@ -186,20 +186,13 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="fas fa-graduation-cap"></i> Learner Records
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="fas fa-school"></i> My School
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="fas fa-history"></i> My History
-                        </a>
-                    </li>
+                    <a class="nav-link {% if request.endpoint == 'cooker_learners_records' %}active{% endif %}" 
+                     href="{{ url_for('cooker_learners_records') }}">
+                        <i class="fas fa-graduation-cap"></i> Learner Records
+                            </a>
+                        </li>
+                    
+                    
                     <li class="nav-item mt-4">
                         <a class="nav-link" href="{{ url_for('logout') }}">
                             <i class="fas fa-sign-out-alt"></i> Logout

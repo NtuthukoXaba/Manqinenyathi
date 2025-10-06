@@ -77,6 +77,7 @@ class Learner(db.Model):
     cooker_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
     school_id = db.Column(db.Integer, db.ForeignKey('schools.school_id'), nullable=False)
     date_served = db.Column(db.Date, nullable=False)
+    meal_type = db.Column(db.String(20), default='Lunch') 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # Updated Routes with Email Authentication
@@ -582,13 +583,12 @@ def add_learner():
         learner_name = request.form['learner_name']
         grade = request.form['grade']
         meal_type = request.form['meal_type']
-        notes = request.form.get('notes', '')
         
         # Get current user and their assigned school
         user_id = session.get('user_id')
         today = datetime.now().date()
         
-        # You might need to modify this to get the cooker's actual assigned school
+        # Get the cooker's assigned school (you may need to modify this logic)
         assigned_school = School.query.first()  # Default to first school for now
         
         # Create new learner record
@@ -598,7 +598,7 @@ def add_learner():
             cooker_id=user_id,
             school_id=assigned_school.school_id if assigned_school else 1,
             date_served=today,
-            meal_type=meal_type  # You might need to add this field to your Learner model
+            meal_type=meal_type
         )
         
         try:
@@ -609,7 +609,7 @@ def add_learner():
             db.session.rollback()
             flash('Error adding learner record. Please try again.', 'error')
     
-    return redirect(url_for('dashboard_cooker'))
+    return redirect(url_for('cooker_learners_records'))
 
 # Route to view learner records
 @app.route('/cooker/learners')
@@ -628,6 +628,48 @@ def cooker_learners():
     
     return render_template('cooker_learners.html', 
                          learners=todays_learners, 
+                         today=today)
+@app.route('/cooker/learners/delete/<int:learner_id>', methods=['POST'])
+def delete_learner(learner_id):
+    if session.get('role') != 'cooker':
+        return redirect(url_for('home'))
+    
+    learner = Learner.query.get_or_404(learner_id)
+    
+    # Ensure the learner belongs to the current cooker
+    if learner.cooker_id != session.get('user_id'):
+        flash('You can only delete your own learner records.', 'error')
+        return redirect(url_for('cooker_learners_records'))
+    
+    try:
+        db.session.delete(learner)
+        db.session.commit()
+        flash('Learner record deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error deleting learner record. Please try again.', 'error')
+    
+    return redirect(url_for('cooker_learners_records'))
+@app.route('/cooker/learners/records', methods=['GET'])
+def cooker_learners_records():
+    if session.get('role') != 'cooker':
+        return redirect(url_for('home'))
+    
+    user_id = session.get('user_id')
+    today = datetime.now().date()
+    
+    # Get today's learners and all learners for the current cooker
+    todays_learners = Learner.query.filter_by(
+        cooker_id=user_id, 
+        date_served=today
+    ).order_by(Learner.created_at.desc()).all()
+    
+    # Get assigned school for the cooker
+    assigned_school = School.query.first()  # Modify this based on your school assignment logic
+    
+    return render_template('cooker_learners_records.html', 
+                         todays_learners=todays_learners,
+                         assigned_school=assigned_school,
                          today=today)
 
 @app.route('/debug/users')
