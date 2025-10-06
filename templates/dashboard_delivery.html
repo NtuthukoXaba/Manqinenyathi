@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Dashboard | Manqinenyathi Food Supply</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary-purple: #6a0dad;
+            --light-purple: #8a2be2;
+            --dark-purple: #4b0082;
+            --accent-purple: #9370db;
+            --white: #ffffff;
+            --light-gray: #f8f9fa;
+            --medium-gray: #e9ecef;
+            --dark-gray: #6c757d;
+            --text-dark: #343a40;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--text-dark);
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary-purple) 0%, var(--dark-purple) 100%);
+            color: var(--white);
+            height: 100vh;
+            position: fixed;
+            padding-top: 20px;
+            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        
+        .sidebar .logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar .logo h3 {
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 20px;
+            margin: 5px 0;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: var(--white);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Main Content Styles */
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        
+        .header {
+            background-color: var(--white);
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            color: var(--primary-purple);
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-info img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid var(--primary-purple);
+        }
+        
+        /* Dashboard Cards */
+        .dashboard-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+            border-top: 4px solid var(--primary-purple);
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .dashboard-card .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: rgba(106, 13, 173, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .dashboard-card .card-icon i {
+            font-size: 24px;
+            color: var(--primary-purple);
+        }
+        
+        .dashboard-card h3 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: var(--primary-purple);
+        }
+        
+        .dashboard-card p {
+            color: var(--dark-gray);
+            margin: 0;
+        }
+        
+        /* Delivery Cards */
+        .delivery-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-purple);
+        }
+        
+        .delivery-card.pending {
+            border-left-color: #ffc107;
+        }
+        
+        .delivery-card.completed {
+            border-left-color: #28a745;
+        }
+        
+        .delivery-card h5 {
+            color: var(--text-dark);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .delivery-card .delivery-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .delivery-card .delivery-info .info-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .delivery-card .delivery-info .info-item i {
+            margin-right: 8px;
+            color: var(--primary-purple);
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #856404;
+        }
+        
+        .status-delivered {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #155724;
+        }
+        
+        .status-in-progress {
+            background-color: rgba(0, 123, 255, 0.1);
+            color: #004085;
+        }
+        
+        /* Buttons */
+        .btn-primary {
+            background-color: var(--primary-purple);
+            border-color: var(--primary-purple);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--dark-purple);
+            border-color: var(--dark-purple);
+        }
+        
+        .btn-outline-primary {
+            border-color: var(--primary-purple);
+            color: var(--primary-purple);
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-purple);
+            color: white;
+        }
+        
+        /* Map Container */
+        .map-container {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+            height: 400px;
+        }
+        
+        .map-container h3 {
+            color: var(--primary-purple);
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        #deliveryMap {
+            height: 100%;
+            border-radius: 8px;
+        }
+        
+        /* Table Styles */
+        .table-container {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .table-container h3 {
+            color: var(--primary-purple);
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .table th {
+            background-color: rgba(106, 13, 173, 0.1);
+            color: var(--primary-purple);
+            border-top: none;
+        }
+        
+        /* Stats Cards */
+        .stats-card {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-purple);
+        }
+        
+        .stats-card h5 {
+            color: var(--dark-gray);
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .stats-card h3 {
+            color: var(--primary-purple);
+            font-weight: 700;
+            margin-bottom: 0;
+        }
+        
+        /* Alert Styles */
+        .alert-info {
+            background-color: rgba(106, 13, 173, 0.1);
+            border-color: rgba(106, 13, 173, 0.2);
+            color: var(--primary-purple);
+        }
+        
+        /* Delivery Form */
+        .delivery-form {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .delivery-form h3 {
+            color: var(--primary-purple);
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .form-control {
+            border: 1px solid var(--medium-gray);
+            border-radius: 8px;
+            padding: 10px 15px;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-purple);
+            box-shadow: 0 0 0 0.2rem rgba(106, 13, 173, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar d-none d-md-block">
+                <div class="logo">
+                    <h3><i class="fas fa-utensils me-2"></i>Manqinenyathi</h3>
+                    <p class="text-muted small">Food Supply System</p>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-truck"></i> My Deliveries</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-history"></i> Delivery History</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-map-marked-alt"></i> Delivery Routes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fas fa-chart-line"></i> My Performance</a>
+                    </li>
+                    <li class="nav-item mt-4">
+                        <a class="nav-link" href="#"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-10 main-content">
+                <!-- Header -->
+                <div class="header">
+                    <h1><i class="fas fa-tachometer-alt me-2"></i>Delivery Dashboard</h1>
+                    <div class="user-info">
+                        <img src="https://ui-avatars.com/api/?name=John+Doe&background=6a0dad&color=fff" alt="John Doe">
+                        <div>
+                            <h6 class="mb-0">John Doe</h6>
+                            <small class="text-muted">Delivery Personnel</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Alert -->
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <div>You have <strong>3 pending deliveries</strong> for today. Remember to update delivery status after completion.</div>
+                </div>
+                
+                <!-- Dashboard Stats -->
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="dashboard-card">
+                            <div class="card-icon">
+                                <i class="fas fa-truck"></i>
+                            </div>
+                            <h3>18</h3>
+                            <p>Total Deliveries Today</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card">
+                            <div class="card-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h3>15</h3>
+                            <p>Completed Deliveries</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card">
+                            <div class="card-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <h3>3</h3>
+                            <p>Pending Deliveries</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card">
+                            <div class="card-icon">
+                                <i class="fas fa-road"></i>
+                            </div>
+                            <h3>42 km</h3>
+                            <p>Distance Covered Today</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Main Content Row -->
+                <div class="row">
+                    <!-- Today's Deliveries -->
+                    <div class="col-md-6">
+                        <div class="table-container">
+                            <h3><i class="fas fa-list me-2"></i>Today's Deliveries</h3>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>School</th>
+                                            <th>Location</th>
+                                            <th>Time</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Springfield Primary</td>
+                                            <td>123 Main St</td>
+                                            <td>08:00 AM</td>
+                                            <td><span class="status-badge status-delivered">Delivered</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" disabled>
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Westside High</td>
+                                            <td>456 Oak Ave</td>
+                                            <td>09:30 AM</td>
+                                            <td><span class="status-badge status-delivered">Delivered</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" disabled>
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Northwood Elementary</td>
+                                            <td>789 Pine Rd</td>
+                                            <td>11:00 AM</td>
+                                            <td><span class="status-badge status-in-progress">In Progress</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#deliveryModal">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Riverside Academy</td>
+                                            <td>321 Elm St</td>
+                                            <td>01:00 PM</td>
+                                            <td><span class="status-badge status-pending">Pending</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                    <i class="fas fa-clock"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Hillside School</td>
+                                            <td>654 Maple Dr</td>
+                                            <td>02:30 PM</td>
+                                            <td><span class="status-badge status-pending">Pending</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                    <i class="fas fa-clock"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-end">
+                                <a href="#" class="btn btn-outline-primary">View All Deliveries</a>
+                            </div>
+                        </div>
+                        
+                        <!-- Delivery Stats -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="stats-card">
+                                    <h5>On-Time Delivery Rate</h5>
+                                    <h3>94%</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="stats-card">
+                                    <h5>Average Delivery Time</h5>
+                                    <h3>28 min</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Delivery Details and Map -->
+                    <div class="col-md-6">
+                        <!-- Current Delivery -->
+                        <div class="delivery-card">
+                            <h5><i class="fas fa-truck-loading me-2"></i>Current Delivery</h5>
+                            <div class="delivery-info">
+                                <div class="info-item">
+                                    <i class="fas fa-school"></i>
+                                    <span>Northwood Elementary</span>
+                                </div>
+                                <div class="info-item">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>789 Pine Rd</span>
+                                </div>
+                            </div>
+                            <div class="delivery-info">
+                                <div class="info-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Scheduled: 11:00 AM</span>
+                                </div>
+                                <div class="info-item">
+                                    <i class="fas fa-phone"></i>
+                                    <span>Contact: (555) 123-4567</span>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#deliveryModal">
+                                    <i class="fas fa-check-circle me-1"></i> Mark as Delivered
+                                </button>
+                                <button class="btn btn-outline-primary">
+                                    <i class="fas fa-directions me-1"></i> Get Directions
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Next Delivery -->
+                        <div class="delivery-card pending">
+                            <h5><i class="fas fa-arrow-right me-2"></i>Next Delivery</h5>
+                            <div class="delivery-info">
+                                <div class="info-item">
+                                    <i class="fas fa-school"></i>
+                                    <span>Riverside Academy</span>
+                                </div>
+                                <div class="info-item">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>321 Elm St</span>
+                                </div>
+                            </div>
+                            <div class="delivery-info">
+                                <div class="info-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Scheduled: 01:00 PM</span>
+                                </div>
+                                <div class="info-item">
+                                    <i class="fas fa-phone"></i>
+                                    <span>Contact: (555) 987-6543</span>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-outline-secondary" disabled>
+                                    <i class="fas fa-clock me-1"></i> Pending
+                                </button>
+                                <button class="btn btn-outline-primary">
+                                    <i class="fas fa-directions me-1"></i> Preview Route
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Delivery Map -->
+                        <div class="map-container">
+                            <h3><i class="fas fa-map-marked-alt me-2"></i>Delivery Route</h3>
+                            <div id="deliveryMap"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delivery Modal -->
+    <div class="modal fade" id="deliveryModal" tabindex="-1" aria-labelledby="deliveryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deliveryModalLabel">Mark Delivery as Completed</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="deliveryTime" class="form-label">Actual Delivery Time</label>
+                        <input type="time" class="form-control" id="deliveryTime" value="11:25">
+                    </div>
+                    <div class="mb-3">
+                        <label for="deliveryNotes" class="form-label">Delivery Notes (Optional)</label>
+                        <textarea class="form-control" id="deliveryNotes" rows="3" placeholder="Any notes about this delivery..."></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="issuesCheck">
+                        <label class="form-check-label" for="issuesCheck">
+                            There were issues with this delivery
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmDelivery">Confirm Delivery</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        function initMap() {
+            // Default coordinates (centered on a sample location)
+            const map = L.map('deliveryMap').setView([-26.2041, 28.0473], 12);
+            
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Add markers for delivery locations
+            const locations = [
+                {name: "Springfield Primary", lat: -26.1941, lng: 28.0373, status: "delivered"},
+                {name: "Westside High", lat: -26.2141, lng: 28.0673, status: "delivered"},
+                {name: "Northwood Elementary", lat: -26.2041, lng: 28.0473, status: "in-progress"},
+                {name: "Riverside Academy", lat: -26.1841, lng: 28.0273, status: "pending"},
+                {name: "Hillside School", lat: -26.2241, lng: 28.0173, status: "pending"}
+            ];
+            
+            // Define custom icons
+            const deliveredIcon = L.divIcon({
+                html: '<i class="fas fa-check-circle" style="color: #28a745; font-size: 24px;"></i>',
+                iconSize: [24, 24],
+                className: 'custom-div-icon'
+            });
+            
+            const inProgressIcon = L.divIcon({
+                html: '<i class="fas fa-truck" style="color: #007bff; font-size: 24px;"></i>',
+                iconSize: [24, 24],
+                className: 'custom-div-icon'
+            });
+            
+            const pendingIcon = L.divIcon({
+                html: '<i class="fas fa-clock" style="color: #ffc107; font-size: 24px;"></i>',
+                iconSize: [24, 24],
+                className: 'custom-div-icon'
+            });
+            
+            // Add markers to map
+            locations.forEach(location => {
+                let icon;
+                if (location.status === "delivered") {
+                    icon = deliveredIcon;
+                } else if (location.status === "in-progress") {
+                    icon = inProgressIcon;
+                } else {
+                    icon = pendingIcon;
+                }
+                
+                L.marker([location.lat, location.lng], {icon: icon})
+                    .addTo(map)
+                    .bindPopup(`<b>${location.name}</b><br>Status: ${location.status}`);
+            });
+        }
+        
+        // Initialize map when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            
+            // Delivery confirmation
+            document.getElementById('confirmDelivery').addEventListener('click', function() {
+                const deliveryTime = document.getElementById('deliveryTime').value;
+                const deliveryNotes = document.getElementById('deliveryNotes').value;
+                
+                // In a real application, you would send this data to the server
+                alert(`Delivery marked as completed at ${deliveryTime}!`);
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('deliveryModal'));
+                modal.hide();
+                
+                // Update UI to reflect completed delivery
+                const currentDeliveryCard = document.querySelector('.delivery-card:not(.pending)');
+                if (currentDeliveryCard) {
+                    currentDeliveryCard.classList.add('completed');
+                    currentDeliveryCard.querySelector('h5').innerHTML = '<i class="fas fa-check-circle me-2" style="color: #28a745;"></i>Delivery Completed';
+                    currentDeliveryCard.querySelector('.btn-primary').innerHTML = '<i class="fas fa-check me-1"></i> Delivered';
+                    currentDeliveryCard.querySelector('.btn-primary').classList.remove('btn-primary');
+                    currentDeliveryCard.querySelector('.btn-primary').classList.add('btn-success');
+                    currentDeliveryCard.querySelector('.btn-primary').disabled = true;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
