@@ -5,6 +5,8 @@
 {% block page_title %}Admin Dashboard{% endblock %}
 
 {% block content %}
+
+
 <!-- Dashboard Stats -->
 <div class="row">
     <div class="col-md-3">
@@ -30,7 +32,7 @@
             <div class="card-icon">
                 <i class="fas fa-utensils"></i>
             </div>
-            <h3>1,250</h3>
+            <h3>{{ learners_fed_today }}</h3>
             <p>Learners Fed Today</p>
         </div>
     </div>
@@ -39,7 +41,7 @@
             <div class="card-icon">
                 <i class="fas fa-truck"></i>
             </div>
-            <h3>18/24</h3>
+            <h3>{{ completed_deliveries_today }}/{{ total_deliveries_today }}</h3>
             <p>Deliveries Completed</p>
         </div>
     </div>
@@ -50,36 +52,38 @@
     <div class="col-md-3">
         <div class="stats-card">
             <h5>Cookers Clocked In</h5>
-            <h3>22/24</h3>
-            <div class="trend up">
-                <i class="fas fa-arrow-up me-1"></i> 2 more than yesterday
+            <h3>{{ cookers_clocked_in }}/{{ total_cookers }}</h3>
+            <div class="trend {% if cookers_clocked_in == total_cookers %}up{% else %}down{% endif %}">
+                <i class="fas fa-{% if cookers_clocked_in == total_cookers %}arrow-up{% else %}arrow-down{% endif %} me-1"></i>
+                {% if cookers_clocked_in == total_cookers %}All present today{% else %}{{ total_cookers - cookers_clocked_in }} absent{% endif %}
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stats-card">
             <h5>Pending Deliveries</h5>
-            <h3>6</h3>
-            <div class="trend down">
-                <i class="fas fa-arrow-down me-1"></i> 3 less than yesterday
+            <h3>{{ pending_deliveries }}</h3>
+            <div class="trend {% if pending_deliveries == 0 %}up{% else %}down{% endif %}">
+                <i class="fas fa-{% if pending_deliveries == 0 %}arrow-up{% else %}arrow-down{% endif %} me-1"></i>
+                {% if pending_deliveries == 0 %}All clear{% else %}Needs attention{% endif %}
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stats-card">
             <h5>Monthly Learners</h5>
-            <h3>24,580</h3>
+            <h3>{{ monthly_learners }}</h3>
             <div class="trend up">
-                <i class="fas fa-arrow-up me-1"></i> 5% increase
+                <i class="fas fa-arrow-up me-1"></i> This month
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="stats-card">
-            <h5>Active Delivery Guys</h5>
-            <h3>12</h3>
+            <h5>Active Delivery Personnel</h5>
+            <h3>{{ active_delivery_guys }}</h3>
             <div class="trend up">
-                <i class="fas fa-arrow-up me-1"></i> All present today
+                <i class="fas fa-arrow-up me-1"></i> On duty
             </div>
         </div>
     </div>
@@ -88,7 +92,7 @@
 <!-- Charts and Tables Row -->
 <div class="row">
     <!-- Recent Deliveries -->
-    <div class="col-md-6">
+    <div class="col-md-12">
         <div class="table-container">
             <h3><i class="fas fa-truck me-2"></i>Recent Deliveries</h3>
             <div class="table-responsive">
@@ -99,6 +103,7 @@
                             <th>Delivery Guy</th>
                             <th>Date</th>
                             <th>Status</th>
+                            <th>Delivery Time</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -112,85 +117,69 @@
                                     {{ delivery.status }}
                                 </span>
                             </td>
+                            <td>
+                                {% if delivery.delivered_time %}
+                                    {{ delivery.delivered_time.strftime('%H:%M') }}
+                                {% else %}
+                                    <span class="text-muted">Pending</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
             <div class="text-end">
-                <a href="#" class="btn btn-sm btn-outline-primary">View All Deliveries</a>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Cooker Attendance -->
-    <div class="col-md-6">
-        <div class="table-container">
-            <h3><i class="fas fa-user-clock me-2"></i>Today's Cooker Attendance</h3>
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Cooker Name</th>
-                            <th>School</th>
-                            <th>Time In</th>
-                            <th>Time Out</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Mary Johnson</td>
-                            <td>Springfield Primary</td>
-                            <td>07:15 AM</td>
-                            <td>02:30 PM</td>
-                        </tr>
-                        <tr>
-                            <td>Susan Davis</td>
-                            <td>Westside High</td>
-                            <td>07:05 AM</td>
-                            <td>02:45 PM</td>
-                        </tr>
-                        <tr>
-                            <td>Lisa Anderson</td>
-                            <td>Northwood Elementary</td>
-                            <td>07:20 AM</td>
-                            <td>-</td>
-                        </tr>
-                        <tr>
-                            <td>Patricia Miller</td>
-                            <td>Riverside Academy</td>
-                            <td>07:10 AM</td>
-                            <td>02:35 PM</td>
-                        </tr>
-                        <tr>
-                            <td>Jennifer Taylor</td>
-                            <td>Hillside School</td>
-                            <td>-</td>
-                            <td>-</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="text-end">
-                <a href="#" class="btn btn-sm btn-outline-primary">View Full Attendance</a>
+                <a href="{{ url_for('manage_deliveries') }}" class="btn btn-sm btn-outline-primary">View All Deliveries</a>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="row">
-    <div class="col-12">
-        <div class="table-container">
-            <h3><i class="fas fa-bolt me-2"></i>Quick Actions</h3>
+<!-- System Overview -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="stats-card">
+            <h5>System Status</h5>
+            <div class="system-status">
+                <div class="status-item {% if total_schools > 0 %}online{% else %}offline{% endif %}">
+                    <i class="fas fa-circle me-2"></i>
+                    <span>Schools Management: {% if total_schools > 0 %}Active{% else %}No Data{% endif %}</span>
+                </div>
+                <div class="status-item {% if total_workers > 0 %}online{% else %}offline{% endif %}">
+                    <i class="fas fa-circle me-2"></i>
+                    <span>Workers System: {% if total_workers > 0 %}Active{% else %}No Data{% endif %}</span>
+                </div>
+                <div class="status-item {% if learners_fed_today > 0 %}online{% else %}offline{% endif %}">
+                    <i class="fas fa-circle me-2"></i>
+                    <span>Feeding Program: {% if learners_fed_today > 0 %}Active{% else %}No Activity{% endif %}</span>
+                </div>
+                <div class="status-item {% if completed_deliveries_today > 0 %}online{% else %}offline{% endif %}">
+                    <i class="fas fa-circle me-2"></i>
+                    <span>Delivery System: {% if completed_deliveries_today > 0 %}Active{% else %}No Deliveries{% endif %}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stats-card">
+            <h5>Quick Actions</h5>
             <div class="quick-actions">
                 <a href="{{ url_for('add_school') }}" class="quick-action-btn">
                     <i class="fas fa-plus me-1"></i> Add New School
                 </a>
-                <button class="quick-action-btn"><i class="fas fa-user-plus me-1"></i> Add Worker</button>
-                <button class="quick-action-btn"><i class="fas fa-truck me-1"></i> Assign Delivery</button>
-                <button class="quick-action-btn"><i class="fas fa-file-export me-1"></i> Export Reports</button>
-                <button class="quick-action-btn"><i class="fas fa-bell me-1"></i> Send Notifications</button>
+                <a href="{{ url_for('add_worker') }}" class="quick-action-btn">
+                    <i class="fas fa-user-plus me-1"></i> Add Worker
+                </a>
+                <a href="{{ url_for('assign_delivery') }}" class="quick-action-btn">
+                    <i class="fas fa-truck me-1"></i> Assign Delivery
+                </a>
+                <a href="{{ url_for('admin_reports') }}" class="quick-action-btn">
+                    <i class="fas fa-file-export me-1"></i> View Reports
+                </a>
+                <a href="{{ url_for('admin_learner_records') }}" class="quick-action-btn">
+                    <i class="fas fa-graduation-cap me-1"></i> Learner Records
+                </a>
             </div>
         </div>
     </div>
@@ -199,112 +188,42 @@
 
 {% block extra_css %}
 <style>
-    /* Dashboard Cards */
-    .dashboard-card {
-        background-color: var(--white);
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    .notification-form {
+        background-color: var(--light-gray);
         padding: 20px;
-        margin-bottom: 20px;
-        transition: transform 0.3s;
-        border-top: 4px solid var(--primary-purple);
-    }
-    
-    .dashboard-card:hover {
-        transform: translateY(-5px);
-    }
-    
-    .dashboard-card .card-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background-color: rgba(106, 13, 173, 0.1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 15px;
-    }
-    
-    .dashboard-card .card-icon i {
-        font-size: 24px;
-        color: var(--primary-purple);
-    }
-    
-    .dashboard-card h3 {
-        font-size: 24px;
-        font-weight: 700;
-        margin-bottom: 5px;
-        color: var(--primary-purple);
-    }
-    
-    .dashboard-card p {
-        color: var(--dark-gray);
-        margin: 0;
-    }
-    
-    /* Stats Cards */
-    .stats-card {
-        background-color: var(--white);
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        padding: 20px;
-        margin-bottom: 20px;
+        border-radius: 8px;
         border-left: 4px solid var(--primary-purple);
     }
     
-    .stats-card h5 {
-        color: var(--dark-gray);
-        font-size: 14px;
-        margin-bottom: 10px;
+    .system-status {
+        margin-top: 15px;
     }
     
-    .stats-card h3 {
-        color: var(--primary-purple);
-        font-weight: 700;
-        margin-bottom: 0;
-    }
-    
-    .stats-card .trend {
-        font-size: 12px;
+    .status-item {
         display: flex;
         align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--medium-gray);
     }
     
-    .stats-card .trend.up {
+    .status-item:last-child {
+        border-bottom: none;
+    }
+    
+    .status-item.online i {
         color: #28a745;
     }
     
-    .stats-card .trend.down {
+    .status-item.offline i {
         color: #dc3545;
     }
     
-    /* Table Styles */
-    .table-container {
-        background-color: var(--white);
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-    
-    .table-container h3 {
-        color: var(--primary-purple);
-        margin-bottom: 20px;
-        font-weight: 700;
-    }
-    
-    .table th {
-        background-color: rgba(106, 13, 173, 0.1);
-        color: var(--primary-purple);
-        border-top: none;
-    }
-    
-    /* Quick Actions */
+    /* Quick Actions Update */
     .quick-actions {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        margin-top: 20px;
+        margin-top: 15px;
     }
     
     .quick-action-btn {
@@ -312,11 +231,14 @@
         color: white;
         border: none;
         border-radius: 5px;
-        padding: 8px 15px;
+        padding: 10px 15px;
         font-size: 14px;
         transition: background-color 0.3s;
         text-decoration: none;
         display: inline-block;
+        text-align: center;
+        flex: 1;
+        min-width: 120px;
     }
     
     .quick-action-btn:hover {
@@ -324,4 +246,58 @@
         color: white;
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Notification System
+        const notificationForm = document.getElementById('notificationForm');
+        if (notificationForm) {
+            notificationForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const notificationType = document.getElementById('notificationType').value;
+                const targetRole = document.getElementById('targetRole').value;
+                const message = document.getElementById('notificationMessage').value;
+                
+                if (!notificationType || !message) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
+                
+                // Send notification via AJAX
+                fetch('/admin/send-notification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: notificationType,
+                        target_role: targetRole,
+                        message: message
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Notification sent successfully!');
+                        notificationForm.reset();
+                    } else {
+                        alert('Error sending notification: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error sending notification');
+                });
+            });
+        }
+        
+        // Auto-refresh stats every 60 seconds
+        setInterval(() => {
+            window.location.reload();
+        }, 60000);
+    });
+</script>
 {% endblock %}

@@ -1,0 +1,167 @@
+{% extends "cooker_base.html" %}
+
+{% block title %}Grocery List | Manqinenyathi Food Supply{% endblock %}
+
+{% block page_title %}Grocery List Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Add Grocery Item Form -->
+        <div class="content-card mb-4">
+            <h3><i class="fas fa-plus-circle me-2"></i>Add New Grocery Item</h3>
+            <form method="POST" action="{{ url_for('add_grocery_item') }}">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="item_name" class="form-label">Item Name</label>
+                            <input type="text" class="form-control" id="item_name" name="item_name" required>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="mb-3">
+                            <label for="size" class="form-label">Size</label>
+                            <input type="number" step="0.01" class="form-control" id="size" name="size" required>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="mb-3">
+                            <label for="unit" class="form-label">Unit</label>
+                            <select class="form-select" id="unit" name="unit" required>
+                                <option value="kg">kg</option>
+                                <option value="g">g</option>
+                                <option value="litre">litre</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="mb-3">
+                            <label for="quantity_needed" class="form-label">Quantity</label>
+                            <input type="number" class="form-control" id="quantity_needed" name="quantity_needed" min="1" required>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-plus me-1"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Grocery List Items -->
+        <div class="content-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3><i class="fas fa-list me-2"></i>Current Grocery List</h3>
+                {% if grocery_items %}
+                <form method="POST" action="{{ url_for('clear_grocery_list') }}" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to clear the entire grocery list?')">
+                        <i class="fas fa-trash me-1"></i> Clear All
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            
+            {% if grocery_items %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Size</th>
+                            <th>Unit</th>
+                            <th>Quantity</th>
+                            <th>Date Added</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in grocery_items %}
+                        <tr>
+                            <td>{{ item.item_name }}</td>
+                            <td>{{ item.size }}</td>
+                            <td>{{ item.unit }}</td>
+                            <td>{{ item.quantity_needed }}</td>
+                            <td>{{ item.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('delete_grocery_item', item_id=item.item_id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this item?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Your grocery list is empty. Add some items above.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Quick Stats -->
+        <div class="content-card">
+            <h3><i class="fas fa-chart-bar me-2"></i>List Summary</h3>
+            <div class="row mt-3">
+                <div class="col-6">
+                    <h5>Total Items</h5>
+                    <h3 class="text-purple">{{ grocery_items|length }}</h3>
+                </div>
+                <div class="col-6">
+                    <h5>Total Quantity</h5>
+                    <h3 class="text-purple">
+                        {{ grocery_items|sum(attribute='quantity_needed') }}
+                    </h3>
+                </div>
+            </div>
+            
+            <!-- Unit Breakdown -->
+            <div class="mt-4">
+                <h5>Items by Unit</h5>
+                <ul class="list-group">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        kg items
+                        <span class="badge bg-primary rounded-pill">
+                            {{ grocery_items|selectattr('unit', 'equalto', 'kg')|list|length }}
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        g items
+                        <span class="badge bg-primary rounded-pill">
+                            {{ grocery_items|selectattr('unit', 'equalto', 'g')|list|length }}
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        litre items
+                        <span class="badge bg-primary rounded-pill">
+                            {{ grocery_items|selectattr('unit', 'equalto', 'litre')|list|length }}
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="content-card mt-4">
+            <h3><i class="fas fa-bolt me-2"></i>Quick Actions</h3>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('dashboard_cooker') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-tachometer-alt me-1"></i> Back to Dashboard
+                </a>
+                <a href="{{ url_for('cooker_learners_records') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-graduation-cap me-1"></i> Manage Learners
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -85,6 +85,19 @@ class Learner(db.Model):
     meal_type = db.Column(db.String(20), default='Lunch') 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class GroceryItem(db.Model):
+    __tablename__ = 'grocery_items'
+    item_id = db.Column(db.Integer, primary_key=True)
+    cooker_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    item_name = db.Column(db.String(100), nullable=False)
+    size = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.Enum('kg', 'g', 'litre'), nullable=False)
+    quantity_needed = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    cooker = db.relationship('User', backref='grocery_items', foreign_keys=[cooker_id])
+
 # Add this function to your app.py
 def optimize_delivery_route(deliveries, start_location):
     """
@@ -138,14 +151,97 @@ def dashboard_admin():
     if session.get('role') != 'admin':
         return redirect(url_for('home'))
     
+    today = datetime.now().date()
+    
+    # Real statistics calculations
     total_schools = School.query.count()
-    total_workers = User.query.count()
+    total_workers = User.query.filter(User.role.in_(['cooker', 'delivery'])).count()
+    
+    # Calculate learners fed today
+    learners_fed_today = Learner.query.filter_by(date_served=today).count()
+    
+    # Calculate delivery statistics
+    total_deliveries_today = Delivery.query.filter_by(delivery_date=today).count()
+    completed_deliveries_today = Delivery.query.filter_by(
+        delivery_date=today, 
+        status='Delivered'
+    ).count()
+    
+    # Calculate cooker attendance
+    total_cookers = User.query.filter_by(role='cooker').count()
+    cookers_clocked_in = Attendance.query.filter_by(date=today).distinct(Attendance.cooker_id).count()
+    
+    # Calculate monthly learners
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+    monthly_learners = Learner.query.filter(
+        db.extract('month', Learner.date_served) == current_month,
+        db.extract('year', Learner.date_served) == current_year
+    ).count()
+    
+    # Active delivery personnel
+    active_delivery_guys = User.query.filter_by(role='delivery').count()
+    
+    # Pending deliveries
+    pending_deliveries = Delivery.query.filter_by(status='Pending').count()
+    
     recent_deliveries = Delivery.query.order_by(Delivery.delivery_date.desc()).limit(5).all()
     
     return render_template('dashboard_admin.html', 
                          total_schools=total_schools,
                          total_workers=total_workers,
+                         learners_fed_today=learners_fed_today,
+                         total_deliveries_today=total_deliveries_today,
+                         completed_deliveries_today=completed_deliveries_today,
+                         cookers_clocked_in=cookers_clocked_in,
+                         total_cookers=total_cookers,
+                         monthly_learners=monthly_learners,
+                         active_delivery_guys=active_delivery_guys,
+                         pending_deliveries=pending_deliveries,
                          recent_deliveries=recent_deliveries)
+
+# Add notification system
+@app.route('/admin/send-notification', methods=['POST'])
+def send_notification():
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'})
+    
+    try:
+        data = request.get_json()
+        notification_type = data.get('type')
+        message = data.get('message')
+        target_role = data.get('target_role', 'all')
+        
+        # In a real application, you would:
+        # 1. Store notifications in database
+        # 2. Use WebSockets for real-time delivery
+        # 3. Integrate with email/SMS services
+        
+        print(f"📢 Notification Sent: {message} | Type: {notification_type} | Target: {target_role}")
+        
+        # For now, we'll just return success
+        return jsonify({
+            'success': True, 
+            'message': 'Notification sent successfully'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+# Add system logging
+import logging
+from datetime import datetime
+
+def log_system_event(event_type, description, user_id=None):
+    """Log system events for monitoring"""
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    user_info = f"User {user_id}" if user_id else "System"
+    log_message = f"[{timestamp}] {user_info} - {event_type}: {description}"
+    
+    print(f"📊 SYSTEM LOG: {log_message}")
+    
+    # In production, you would write to a log file or database
+    logging.info(log_message)
 
 @app.route('/dashboard/cooker')
 def dashboard_cooker():
@@ -1046,39 +1142,65 @@ def delivery_performance():
 @app.route('/api/delivery/complete', methods=['POST'])
 def api_complete_delivery():
     if session.get('role') != 'delivery':
+        print("❌ Unauthorized access attempt to complete delivery")
         return jsonify({'success': False, 'message': 'Unauthorized'})
     
-    data = request.get_json()
-    delivery_id = data.get('delivery_id')
-    delivery_time = data.get('delivery_time')
-    notes = data.get('notes', '')
-    has_issues = data.get('has_issues', False)
-    
-    delivery = Delivery.query.get(delivery_id)
-    if delivery and delivery.delivery_guy_id == session.get('user_id'):
-        try:
-            # Parse delivery time and combine with delivery date
-            if delivery_time:
+    try:
+        data = request.get_json()
+        print(f"📦 Received delivery completion data: {data}")
+        
+        delivery_id = data.get('delivery_id')
+        delivery_time = data.get('delivery_time')
+        notes = data.get('notes', '')
+        has_issues = data.get('has_issues', False)
+        
+        print(f"🔍 Looking for delivery ID: {delivery_id} for user: {session.get('user_id')}")
+        
+        delivery = Delivery.query.get(delivery_id)
+        if not delivery:
+            print(f"❌ Delivery {delivery_id} not found")
+            return jsonify({'success': False, 'message': 'Delivery not found'})
+        
+        if delivery.delivery_guy_id != session.get('user_id'):
+            print(f"❌ User {session.get('user_id')} not authorized for delivery {delivery_id}")
+            return jsonify({'success': False, 'message': 'Not authorized for this delivery'})
+        
+        # Parse delivery time
+        if delivery_time:
+            try:
                 time_obj = datetime.strptime(delivery_time, '%H:%M').time()
                 delivered_datetime = datetime.combine(delivery.delivery_date, time_obj)
-            else:
-                delivered_datetime = datetime.utcnow()
-            
-            delivery.status = 'Delivered'
-            delivery.delivered_time = delivered_datetime
-            delivery.remarks = notes if notes else delivery.remarks
-            
-            if has_issues:
-                # You might want to log issues separately
-                delivery.remarks = f"ISSUES REPORTED: {notes}" if notes else "ISSUES REPORTED: No details provided"
-            
-            db.session.commit()
-            return jsonify({'success': True})
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'success': False, 'message': str(e)})
-    
-    return jsonify({'success': False, 'message': 'Delivery not found'})
+                print(f"⏰ Parsed delivery time: {delivered_datetime}")
+            except ValueError as e:
+                print(f"❌ Time parsing error: {e}")
+                return jsonify({'success': False, 'message': 'Invalid time format'})
+        else:
+            delivered_datetime = datetime.utcnow()
+            print(f"⏰ Using current time: {delivered_datetime}")
+        
+        # Update delivery
+        delivery.status = 'Delivered'
+        delivery.delivered_time = delivered_datetime
+        
+        if notes:
+            delivery.remarks = notes
+            print(f"📝 Added notes: {notes}")
+        
+        if has_issues:
+            issue_text = f"ISSUES REPORTED: {notes}" if notes else "ISSUES REPORTED: No details provided"
+            delivery.remarks = issue_text
+            print(f"⚠️ Marked as having issues: {issue_text}")
+        
+        # Commit changes
+        db.session.commit()
+        print(f"✅ Successfully marked delivery {delivery_id} as delivered")
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Database error: {str(e)}")
+        return jsonify({'success': False, 'message': f'Database error: {str(e)}'})
 
 @app.route('/admin/learner-records')
 def admin_learner_records():
@@ -1308,6 +1430,90 @@ def export_delivery_excel():
         download_name=filename
     )
 
+@app.route('/cooker/grocery-list')
+def cooker_grocery_list():
+    if session.get('role') != 'cooker':
+        return redirect(url_for('home'))
+    
+    user_id = session.get('user_id')
+    
+    # Get all grocery items for the current cooker
+    grocery_items = GroceryItem.query.filter_by(cooker_id=user_id).order_by(GroceryItem.created_at.desc()).all()
+    
+    return render_template('cooker_grocery_list.html', grocery_items=grocery_items)
+
+@app.route('/cooker/grocery-list/add', methods=['POST'])
+def add_grocery_item():
+    if session.get('role') != 'cooker':
+        return redirect(url_for('home'))
+    
+    if request.method == 'POST':
+        item_name = request.form['item_name']
+        size = float(request.form['size'])
+        unit = request.form['unit']
+        quantity_needed = int(request.form['quantity_needed'])
+        
+        user_id = session.get('user_id')
+        
+        # Create new grocery item
+        new_item = GroceryItem(
+            cooker_id=user_id,
+            item_name=item_name,
+            size=size,
+            unit=unit,
+            quantity_needed=quantity_needed
+        )
+        
+        try:
+            db.session.add(new_item)
+            db.session.commit()
+            flash('Grocery item added successfully!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash('Error adding grocery item. Please try again.', 'error')
+    
+    return redirect(url_for('cooker_grocery_list'))
+
+@app.route('/cooker/grocery-list/delete/<int:item_id>', methods=['POST'])
+def delete_grocery_item(item_id):
+    if session.get('role') != 'cooker':
+        return redirect(url_for('home'))
+    
+    item = GroceryItem.query.get_or_404(item_id)
+    
+    # Ensure the item belongs to the current cooker
+    if item.cooker_id != session.get('user_id'):
+        flash('You can only delete your own grocery items.', 'error')
+        return redirect(url_for('cooker_grocery_list'))
+    
+    try:
+        db.session.delete(item)
+        db.session.commit()
+        flash('Grocery item deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error deleting grocery item. Please try again.', 'error')
+    
+    return redirect(url_for('cooker_grocery_list'))
+
+@app.route('/cooker/grocery-list/clear', methods=['POST'])
+def clear_grocery_list():
+    if session.get('role') != 'cooker':
+        return redirect(url_for('home'))
+    
+    user_id = session.get('user_id')
+    
+    try:
+        # Delete all grocery items for the current cooker
+        GroceryItem.query.filter_by(cooker_id=user_id).delete()
+        db.session.commit()
+        flash('Grocery list cleared successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error clearing grocery list. Please try again.', 'error')
+    
+    return redirect(url_for('cooker_grocery_list'))
+
 
 @app.route('/debug/users')
 def debug_users():
@@ -1384,5 +1590,6 @@ def init_db():
         print("Database initialization completed!")  # Debug print
 
 if __name__ == "__main__":
-    init_db()
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
