@@ -207,6 +207,13 @@
                      <i class="fas fa-graduation-cap"></i> Learner Records
                         </a>
                     </li>
+
+                    <li class="nav-item">
+                         <a class="nav-link {% if request.endpoint == 'admin_grocery_lists' %}active{% endif %}" 
+                        href="{{ url_for('admin_grocery_lists') }}">
+                         <i class="fas fa-shopping-basket"></i> Grocery Lists
+                        </a>
+                    </li>
                     
                     <li class="nav-item mt-4">
                         <a class="nav-link" href="{{ url_for('logout') }}">

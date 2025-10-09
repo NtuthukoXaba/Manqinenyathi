@@ -1514,6 +1514,101 @@ def clear_grocery_list():
     
     return redirect(url_for('cooker_grocery_list'))
 
+@app.route('/admin/grocery-lists')
+def admin_grocery_lists():
+    if session.get('role') != 'admin':
+        return redirect(url_for('home'))
+    
+    # Get all grocery items with cooker information, ordered by cooker and creation date
+    grocery_items = db.session.query(GroceryItem, User)\
+        .join(User, GroceryItem.cooker_id == User.user_id)\
+        .order_by(User.full_name, GroceryItem.created_at.desc())\
+        .all()
+    
+    # Group items by cooker for easier display - USE DIFFERENT KEY NAME
+    items_by_cooker = {}
+    for item, cooker in grocery_items:
+        cooker_id = cooker.user_id
+        if cooker_id not in items_by_cooker:
+            items_by_cooker[cooker_id] = {
+                'cooker': cooker,
+                'grocery_items': []  # Changed from 'items' to 'grocery_items'
+            }
+        items_by_cooker[cooker_id]['grocery_items'].append(item)
+    
+    # Calculate summary statistics
+    total_items = len(grocery_items)
+    total_cookers = len(items_by_cooker)
+    
+    # Calculate totals by unit
+    unit_totals = {}
+    for item, cooker in grocery_items:
+        unit = item.unit
+        if unit not in unit_totals:
+            unit_totals[unit] = {
+                'count': 0,
+                'total_quantity': 0,
+                'total_size': 0.0
+            }
+        unit_totals[unit]['count'] += 1
+        unit_totals[unit]['total_quantity'] += item.quantity_needed
+        unit_totals[unit]['total_size'] += item.size * item.quantity_needed
+    
+    return render_template('admin_grocery_lists.html',
+                         items_by_cooker=items_by_cooker,
+                         total_items=total_items,
+                         total_cookers=total_cookers,
+                         unit_totals=unit_totals)
+
+@app.route('/admin/grocery-lists/delete/<int:item_id>', methods=['POST'])
+def admin_delete_grocery_item(item_id):
+    if session.get('role') != 'admin':
+        return redirect(url_for('home'))
+    
+    item = GroceryItem.query.get_or_404(item_id)
+    
+    try:
+        db.session.delete(item)
+        db.session.commit()
+        flash('Grocery item deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error deleting grocery item. Please try again.', 'error')
+    
+    return redirect(url_for('admin_grocery_lists'))
+
+@app.route('/admin/grocery-lists/clear-cooker/<int:cooker_id>', methods=['POST'])
+def clear_cooker_grocery_list(cooker_id):
+    if session.get('role') != 'admin':
+        return redirect(url_for('home'))
+    
+    try:
+        # Delete all grocery items for the specified cooker
+        GroceryItem.query.filter_by(cooker_id=cooker_id).delete()
+        db.session.commit()
+        flash('Grocery list cleared for selected cooker!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error clearing grocery list. Please try again.', 'error')
+    
+    return redirect(url_for('admin_grocery_lists'))
+
+@app.route('/admin/grocery-lists/clear-all', methods=['POST'])
+def clear_all_grocery_lists():
+    if session.get('role') != 'admin':
+        return redirect(url_for('home'))
+    
+    try:
+        # Delete all grocery items
+        GroceryItem.query.delete()
+        db.session.commit()
+        flash('All grocery lists cleared successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error clearing all grocery lists. Please try again.', 'error')
+    
+    return redirect(url_for('admin_grocery_lists'))
+
 
 @app.route('/debug/users')
 def debug_users():
