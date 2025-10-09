@@ -39,6 +39,20 @@
                         {% endfor %}
                     </select>
                 </div>
+
+                <!-- Fixed cooker field - removed the delivery reference -->
+                <div class="mb-3">
+                    <label for="cooker_id" class="form-label">Cooker (Grocery Recipient) *</label>
+                    <select class="form-control" id="cooker_id" name="cooker_id" required>
+                        <option value="">Select Cooker</option>
+                        {% for cooker in cookers %}
+                        <option value="{{ cooker.user_id }}">
+                            {{ cooker.full_name }} - {{ cooker.email }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
                 <div class="mb-3">
                     <label for="remarks" class="form-label">Remarks (Optional)</label>
                     <textarea class="form-control" id="remarks" name="remarks" rows="3" 
@@ -62,6 +76,18 @@
         </div>
     </form>
 </div>
+
+<!-- Information Card -->
+<div class="content-card mt-4">
+    <h5><i class="fas fa-info-circle me-2"></i>About Cooker Assignment</h5>
+    <p class="mb-2">When you assign a cooker to a delivery:</p>
+    <ul class="small">
+        <li>The delivery personnel will see the assigned cooker's grocery list</li>
+        <li>The delivery will be linked to specific grocery requirements</li>
+        <li>You can track which groceries were delivered to which cooker</li>
+        <li>The cooker will know when to expect their delivery</li>
+    </ul>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -70,6 +96,19 @@
     document.addEventListener('DOMContentLoaded', function() {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('delivery_date').min = today;
+        
+        // Auto-fill location when school is selected
+        const schoolSelect = document.getElementById('school_id');
+        const locationInput = document.getElementById('location');
+        
+        schoolSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.value && selectedOption.text) {
+                // Extract school name and location from the option text
+                const optionText = selectedOption.text;
+                locationInput.value = optionText + ' Kitchen';
+            }
+        });
     });
 </script>
 {% endblock %}

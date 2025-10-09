@@ -54,6 +54,22 @@
                     <label for="remarks" class="form-label">Remarks</label>
                     <textarea class="form-control" id="remarks" name="remarks" rows="3">{{ delivery.remarks or '' }}</textarea>
                 </div>
+
+                <!-- In the form section, add the cooker field -->
+<div class="col-md-6">
+    <div class="mb-3">
+        <label for="cooker_id" class="form-label">Cooker (Grocery Recipient) *</label>
+        <select class="form-select" id="cooker_id" name="cooker_id" required>
+            <option value="">Select Cooker</option>
+            {% for cooker in cookers %}
+            <option value="{{ cooker.user_id }}" {% if delivery.cooker_id == cooker.user_id %}selected{% endif %}>
+                {{ cooker.full_name }} - {{ cooker.email }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
             </div>
         </div>
         <div class="d-flex justify-content-between mt-4">

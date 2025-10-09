@@ -9,12 +9,15 @@ from flask import send_file
 import random
 from math import radians, sin, cos, sqrt, atan2
 
+
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///manqinenyathi.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
 
 # Database Models (unchanged)
 class User(db.Model):
@@ -56,6 +59,7 @@ class Delivery(db.Model):
     __tablename__ = 'deliveries'
     delivery_id = db.Column(db.Integer, primary_key=True)
     school_id = db.Column(db.Integer, db.ForeignKey('schools.school_id'), nullable=False)
+    cooker_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)  # New field
     delivery_date = db.Column(db.Date, nullable=False)
     location = db.Column(db.String(150), nullable=False)
     delivery_guy_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
@@ -63,6 +67,9 @@ class Delivery(db.Model):
     delivered_time = db.Column(db.DateTime)
     remarks = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Add relationship for cooker
+    cooker = db.relationship('User', backref='deliveries_for_cooker', foreign_keys=[cooker_id])
 
 class Attendance(db.Model):
     __tablename__ = 'attendance'
@@ -512,12 +519,14 @@ def assign_delivery():
     if session.get('role') != 'admin':
         return redirect(url_for('home'))
     
-    # Get available schools and delivery guys for dropdowns
+    # Get available schools, delivery guys, AND cookers for dropdowns
     schools = School.query.order_by(School.school_name).all()
     delivery_guys = User.query.filter_by(role='delivery').order_by(User.full_name).all()
+    cookers = User.query.filter_by(role='cooker').order_by(User.full_name).all()  # New
     
     if request.method == 'POST':
         school_id = request.form['school_id']
+        cooker_id = request.form['cooker_id']  # New field
         delivery_date = request.form['delivery_date']
         location = request.form['location']
         delivery_guy_id = request.form['delivery_guy_id']
@@ -526,6 +535,7 @@ def assign_delivery():
         # Create new delivery assignment
         new_delivery = Delivery(
             school_id=school_id,
+            cooker_id=cooker_id,  # New field
             delivery_date=datetime.strptime(delivery_date, '%Y-%m-%d').date(),
             location=location,
             delivery_guy_id=delivery_guy_id,
@@ -542,7 +552,10 @@ def assign_delivery():
             db.session.rollback()
             flash('Error assigning delivery. Please try again.', 'error')
     
-    return render_template('assign_delivery.html', schools=schools, delivery_guys=delivery_guys)
+    return render_template('assign_delivery.html', 
+                         schools=schools, 
+                         delivery_guys=delivery_guys,
+                         cookers=cookers)  # Pass cookers to template
 
 @app.route('/admin/deliveries/edit/<int:delivery_id>', methods=['GET', 'POST'])
 def edit_delivery(delivery_id):
@@ -552,9 +565,11 @@ def edit_delivery(delivery_id):
     delivery = Delivery.query.get_or_404(delivery_id)
     schools = School.query.order_by(School.school_name).all()
     delivery_guys = User.query.filter_by(role='delivery').order_by(User.full_name).all()
+    cookers = User.query.filter_by(role='cooker').order_by(User.full_name).all()  # New
     
     if request.method == 'POST':
         delivery.school_id = request.form['school_id']
+        delivery.cooker_id = request.form['cooker_id']  # New field
         delivery.delivery_date = datetime.strptime(request.form['delivery_date'], '%Y-%m-%d').date()
         delivery.location = request.form['location']
         delivery.delivery_guy_id = request.form['delivery_guy_id']
@@ -573,7 +588,11 @@ def edit_delivery(delivery_id):
             db.session.rollback()
             flash('Error updating delivery. Please try again.', 'error')
     
-    return render_template('edit_delivery.html', delivery=delivery, schools=schools, delivery_guys=delivery_guys)
+    return render_template('edit_delivery.html', 
+                         delivery=delivery, 
+                         schools=schools, 
+                         delivery_guys=delivery_guys,
+                         cookers=cookers)  # Pass cookers to template
 
 @app.route('/admin/deliveries/delete/<int:delivery_id>', methods=['POST'])
 def delete_delivery(delivery_id):
@@ -879,11 +898,11 @@ def dashboard_delivery():
     user_id = session.get('user_id')
     today = datetime.now().date()
     
-    # Get today's deliveries for this delivery person
+    # Get today's deliveries for this delivery person with cooker information
     todays_deliveries = Delivery.query.filter_by(
         delivery_guy_id=user_id,
         delivery_date=today
-    ).join(School).order_by(Delivery.delivery_date).all()
+    ).join(School).join(User, Delivery.cooker_id == User.user_id).order_by(Delivery.delivery_date).all()
     
     # Calculate real stats
     total_deliveries = len(todays_deliveries)
@@ -892,6 +911,13 @@ def dashboard_delivery():
     
     # Find current delivery (first pending delivery)
     current_delivery = next((d for d in todays_deliveries if d.status == 'Pending'), None)
+    
+    # Get grocery items for current delivery if exists
+    current_grocery_items = []
+    if current_delivery:
+        current_grocery_items = GroceryItem.query.filter_by(
+            cooker_id=current_delivery.cooker_id
+        ).order_by(GroceryItem.created_at.desc()).all()
     
     # Find next delivery (after current)
     if current_delivery:
@@ -914,6 +940,7 @@ def dashboard_delivery():
                          completed_deliveries=completed_deliveries,
                          pending_deliveries=pending_deliveries,
                          current_delivery=current_delivery,
+                         current_grocery_items=current_grocery_items,  # New
                          next_delivery=next_delivery,
                          distance_covered=distance_covered,
                          on_time_rate=on_time_rate,
