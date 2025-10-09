@@ -8,6 +8,14 @@ from io import BytesIO
 from flask import send_file
 import random
 from math import radians, sin, cos, sqrt, atan2
+from flask import make_response
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+import io
 
 
 
@@ -1061,8 +1069,11 @@ def delivery_my_deliveries():
     status_filter = request.args.get('status', '')
     date_filter = request.args.get('date', '')
     
-    # Base query for deliveries assigned to this delivery person
-    query = Delivery.query.filter_by(delivery_guy_id=user_id).join(School)
+    # Enhanced query to include cooker information
+    query = Delivery.query.filter_by(delivery_guy_id=user_id)\
+        .join(School)\
+        .join(User, Delivery.cooker_id == User.user_id)\
+        .options(db.joinedload(Delivery.cooker))
     
     # Apply filters
     if status_filter:
@@ -1089,8 +1100,17 @@ def delivery_my_deliveries():
         error_out=False
     )
     
+    # Get grocery items for each delivery
+    deliveries_with_groceries = []
+    for delivery in deliveries_pagination.items:
+        grocery_items = GroceryItem.query.filter_by(cooker_id=delivery.cooker_id).all()
+        deliveries_with_groceries.append({
+            'delivery': delivery,
+            'grocery_items': grocery_items
+        })
+    
     return render_template('delivery_my_deliveries.html',
-                         deliveries=deliveries_pagination.items,
+                         deliveries_with_groceries=deliveries_with_groceries,
                          pagination=deliveries_pagination,
                          status_filter=status_filter,
                          date_filter=date_filter)
@@ -1635,6 +1655,152 @@ def clear_all_grocery_lists():
         flash('Error clearing all grocery lists. Please try again.', 'error')
     
     return redirect(url_for('admin_grocery_lists'))
+
+@app.route('/delivery/generate-pdf/<int:delivery_id>')
+def generate_delivery_pdf(delivery_id):
+    if session.get('role') != 'delivery':
+        return redirect(url_for('home'))
+    
+    # Get delivery with all related information
+    delivery = Delivery.query.filter_by(
+        delivery_id=delivery_id,
+        delivery_guy_id=session.get('user_id')
+    ).join(School).join(User, Delivery.cooker_id == User.user_id).first_or_404()
+    
+    # Get grocery items for the cooker
+    grocery_items = GroceryItem.query.filter_by(cooker_id=delivery.cooker_id).all()
+    
+    # Create PDF in memory
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch)
+    story = []
+    
+    # Define styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=30,
+        textColor=colors.HexColor('#6a0dad')
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=12,
+        spaceAfter=12,
+        textColor=colors.HexColor('#4b0082')
+    )
+    
+    normal_style = styles['Normal']
+    
+    # Title
+    story.append(Paragraph("MANQINENYATHI FOOD SUPPLY - DELIVERY REPORT", title_style))
+    story.append(Spacer(1, 0.2*inch))
+    
+    # Delivery Information Section
+    story.append(Paragraph("DELIVERY INFORMATION", heading_style))
+    
+    delivery_data = [
+        ["Delivery ID:", str(delivery.delivery_id)],
+        ["School:", delivery.school.school_name],
+        ["Location:", delivery.location],
+        ["Delivery Date:", delivery.delivery_date.strftime('%Y-%m-%d')],
+        ["Delivery Personnel:", delivery.delivery_guy.full_name],
+        ["Status:", delivery.status],
+        ["Assigned Cooker:", delivery.cooker.full_name],
+        ["Cooker Contact:", delivery.cooker.phone or "Not provided"],
+        ["Cooker Email:", delivery.cooker.email]
+    ]
+    
+    if delivery.delivered_time:
+        delivery_data.append(["Delivered Time:", delivery.delivered_time.strftime('%Y-%m-%d %H:%M')])
+    if delivery.remarks:
+        delivery_data.append(["Remarks:", delivery.remarks])
+    
+    delivery_table = Table(delivery_data, colWidths=[2*inch, 4*inch])
+    delivery_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0e6ff')),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#4b0082')),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('BACKGROUND', (1, 0), (1, -1), colors.white),
+        ('GRID', (0, 0), (-1, -1), 1, colors.grey)
+    ]))
+    
+    story.append(delivery_table)
+    story.append(Spacer(1, 0.3*inch))
+    
+    # Grocery List Section
+    story.append(Paragraph("GROCERY LIST FOR COOKER: " + delivery.cooker.full_name.upper(), heading_style))
+    
+    if grocery_items:
+        # Prepare grocery table data
+        grocery_data = [["Item Name", "Size", "Unit", "Quantity", "Total Amount"]]
+        
+        for item in grocery_items:
+            total_amount = item.size * item.quantity_needed
+            grocery_data.append([
+                item.item_name,
+                str(item.size),
+                item.unit,
+                str(item.quantity_needed),
+                f"{total_amount} {item.unit}"
+            ])
+        
+        # Calculate totals
+        unit_totals = {}
+        for item in grocery_items:
+            unit = item.unit
+            total = item.size * item.quantity_needed
+            if unit not in unit_totals:
+                unit_totals[unit] = 0
+            unit_totals[unit] += total
+        
+        # Add totals row
+        grocery_data.append(["", "", "", "TOTALS:", ""])
+        for unit, total in unit_totals.items():
+            grocery_data.append(["", "", "", f"Total {unit}:", f"{total:.2f} {unit}"])
+        
+        grocery_table = Table(grocery_data, colWidths=[2*inch, 0.8*inch, 0.8*inch, 1*inch, 1.5*inch])
+        grocery_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6a0dad')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            ('ALIGN', (1, 1), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, -len(unit_totals)-1), (-1, -1), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, -len(unit_totals)-1), (-1, -1), colors.HexColor('#f0e6ff'))
+        ]))
+        
+        story.append(grocery_table)
+    else:
+        story.append(Paragraph("No grocery items found for this cooker.", normal_style))
+    
+    story.append(Spacer(1, 0.3*inch))
+    
+    # Footer with timestamp
+    from datetime import datetime
+    generated_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    story.append(Paragraph(f"Generated on: {generated_time}", styles['Italic']))
+    
+    # Build PDF
+    doc.build(story)
+    
+    # Prepare response
+    buffer.seek(0)
+    response = make_response(buffer.getvalue())
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=delivery_{delivery_id}_report.pdf'
+    
+    return response
 
 
 @app.route('/debug/users')
